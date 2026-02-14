@@ -111,11 +111,24 @@ class DNABERTEngine:
             # Suppress ALL warnings during model loading:
             # 1. "Some weights … were not initialized" (pooler.dense)
             # 2. "Unable to import Triton" UserWarning from bert_layers
+            # 3. "The following layers were not sharded" from tensor_parallel
+            # 4. C++ "computation placer already registered" from XLA/JAX
+            import os as _os
             import warnings as _w
 
             _tf_logger = logging.getLogger("transformers.modeling_utils")
+            _tp_logger = logging.getLogger("transformers.integrations.tensor_parallel")
             _prev_level = _tf_logger.level
+            _tp_prev = _tp_logger.level
             _tf_logger.setLevel(logging.ERROR)
+            _tp_logger.setLevel(logging.CRITICAL)
+
+            # Redirect C++ stderr to suppress XLA/JAX registration noise
+            _devnull = _os.open(_os.devnull, _os.O_WRONLY)
+            _old_stderr_fd = _os.dup(2)
+            _os.dup2(_devnull, 2)
+            _os.close(_devnull)
+
             with _w.catch_warnings():
                 _w.filterwarnings("ignore", message=".*Unable to import Triton.*")
                 _w.filterwarnings("ignore", message=".*not initialized.*")
@@ -127,7 +140,11 @@ class DNABERTEngine:
                         revision=self.cfg.dnabert_revision,
                     ).to(self.device)
                 finally:
+                    # Restore stderr
+                    _os.dup2(_old_stderr_fd, 2)
+                    _os.close(_old_stderr_fd)
                     _tf_logger.setLevel(_prev_level)
+                    _tp_logger.setLevel(_tp_prev)
             # DNABERT-2 bundles a Triton flash-attention kernel that is
             # incompatible with Triton >= 3.0 (removed ``trans_b`` kwarg
             # from ``tl.dot``).  The attention branch in
