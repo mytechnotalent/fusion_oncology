@@ -12,7 +12,7 @@ from functools import lru_cache
 
 import numpy as np
 import torch
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 from fusion_oncology.config import ProjectConfig
 
@@ -100,9 +100,15 @@ class DNABERTEngine:
         """
         if self._model is None:
             logger.info("Loading DNABERT-2 on %s …", self.device)
-            self._model = AutoModel.from_pretrained(self.cfg.model_path, trust_remote_code=True).to(
-                self.device
-            )
+            config = AutoConfig.from_pretrained(self.cfg.model_path, trust_remote_code=True)
+            # Triton flash-attention requires CUDA; disable on CPU/MPS
+            if self.device != "cuda":
+                config.use_flash_attn = False
+            self._model = AutoModel.from_pretrained(
+                self.cfg.model_path,
+                config=config,
+                trust_remote_code=True,
+            ).to(self.device)
             self._model.eval()
         return self._model
 
