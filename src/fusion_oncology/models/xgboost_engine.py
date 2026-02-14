@@ -13,7 +13,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from sklearn.metrics import make_scorer, fbeta_score
+from sklearn.metrics import make_scorer, fbeta_score, precision_score, recall_score, f1_score
 from sklearn.model_selection import StratifiedKFold, cross_validate as sklearn_cv
 from sklearn.preprocessing import LabelEncoder
 
@@ -231,6 +231,9 @@ class XGBoostEngine:
         skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
         clf = self._build_cv_classifier()
 
+        precision_scorer = make_scorer(precision_score, average="weighted", zero_division=0)
+        recall_scorer = make_scorer(recall_score, average="weighted", zero_division=0)
+        f1_scorer = make_scorer(f1_score, average="weighted", zero_division=0)
         f2_scorer = make_scorer(
             fbeta_score,
             beta=2,
@@ -239,9 +242,9 @@ class XGBoostEngine:
         )
         scoring = {
             "accuracy": "accuracy",
-            "precision_weighted": "precision_weighted",
-            "recall_weighted": "recall_weighted",
-            "f1_weighted": "f1_weighted",
+            "precision_weighted": precision_scorer,
+            "recall_weighted": recall_scorer,
+            "f1_weighted": f1_scorer,
             "f2_weighted": f2_scorer,
             "roc_auc_ovr_weighted": "roc_auc_ovr_weighted",
         }

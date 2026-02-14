@@ -252,7 +252,7 @@ def instability_boxplot(drift_reports: list[dict[str, Any]]) -> plt.Figure:
     fig, ax = plt.subplots(figsize=(8, 5))
     data = [r["all_drifts"] for r in drift_reports]
     labels = [r["gene"] for r in drift_reports]
-    bp = ax.boxplot(data, labels=labels, patch_artist=True)
+    bp = ax.boxplot(data, tick_labels=labels, patch_artist=True)
     _color_boxes(bp, len(data))
     ax.set(ylabel="Cosine Drift", title="Mutational Instability Distribution")
     fig.tight_layout()
