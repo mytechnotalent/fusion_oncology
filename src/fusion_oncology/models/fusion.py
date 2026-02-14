@@ -14,6 +14,7 @@ import logging
 import re
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from fusion_oncology.analysis.drug_target import DrugTargetMapper
@@ -55,6 +56,73 @@ class FusionEngine:
 
     _GENE_RE = re.compile(r"^[A-Z][A-Z0-9/-]*$")
 
+    _CANCER_DRIVERS = frozenset(
+        {
+            "ABL1",
+            "AKT1",
+            "ALK",
+            "APC",
+            "AR",
+            "ARID1A",
+            "ATM",
+            "BRAF",
+            "BRCA1",
+            "BRCA2",
+            "CCND1",
+            "CCNE1",
+            "CDK4",
+            "CDK6",
+            "CDKN2A",
+            "CREBBP",
+            "CTNNB1",
+            "DNMT3A",
+            "EGFR",
+            "EP300",
+            "ERBB2",
+            "ERG",
+            "ESR1",
+            "ETV6",
+            "EZH2",
+            "FGFR1",
+            "FGFR2",
+            "FGFR3",
+            "FLT3",
+            "GATA3",
+            "HRAS",
+            "IDH1",
+            "IDH2",
+            "JAK2",
+            "KIT",
+            "KMT2A",
+            "KRAS",
+            "MAP2K1",
+            "MDM2",
+            "MET",
+            "MTOR",
+            "MYC",
+            "NF1",
+            "NF2",
+            "NOTCH1",
+            "NPM1",
+            "NRAS",
+            "PDGFRA",
+            "PIK3CA",
+            "PTEN",
+            "PTCH1",
+            "RAF1",
+            "RB1",
+            "RET",
+            "RUNX1",
+            "SF3B1",
+            "SMAD4",
+            "STK11",
+            "TERT",
+            "TET2",
+            "TP53",
+            "VHL",
+        }
+    )
+
     # ── initialisation helpers ───────────────────────────────────────────
 
     def _init_analyzers(self) -> None:
@@ -84,6 +152,7 @@ class FusionEngine:
         self._init_analyzers()
         self.results: pd.DataFrame = pd.DataFrame()
         self.cv_metrics: dict[str, Any] = {}
+        self.dnabert_metrics: dict[str, Any] = {}
 
     # ── run helpers ──────────────────────────────────────────────────────
 
@@ -246,6 +315,76 @@ class FusionEngine:
         )
         self.results["SL_Partners"] = genes.apply(self._sl_label)
 
+    # ── metrics helpers ────────────────────────────────────────────────
+
+    @staticmethod
+    def _instability_snr(inst: np.ndarray) -> float:
+        """Compute signal-to-noise ratio of instability scores.
+
+        Parameters
+        ----------
+        inst : np.ndarray
+            Array of instability scores.
+
+        Returns
+        -------
+        float
+            Mean divided by standard deviation, or ``0.0`` if constant.
+        """
+        std = float(np.std(inst))
+        if std < 1e-12:
+            return 0.0
+        return float(np.mean(inst) / std)
+
+    def _compute_dnabert_metrics(self) -> None:
+        """Compute DNABERT-2 evaluation metrics from scored results.
+
+        Populates ``self.dnabert_metrics`` with instability statistics
+        including mean, std, range, and signal-to-noise ratio.
+        """
+        inst = self.results["Instability"].values
+        self.dnabert_metrics["mean_instability"] = float(np.mean(inst))
+        self.dnabert_metrics["std_instability"] = float(np.std(inst))
+        self.dnabert_metrics["max_instability"] = float(np.max(inst))
+        self.dnabert_metrics["min_instability"] = float(np.min(inst))
+        self.dnabert_metrics["n_genes_scored"] = len(inst)
+        self.dnabert_metrics["instability_range"] = float(np.ptp(inst))
+        self.dnabert_metrics["signal_noise_ratio"] = self._instability_snr(inst)
+
+    def _compute_driver_enrichment(self) -> None:
+        """Measure enrichment of top genes in known cancer driver list.
+
+        Checks how many of the top-K genes appear in the COSMIC
+        Cancer Gene Census reference set.
+        """
+        genes = set(self.results["Gene"].tolist())
+        hits = genes & self._CANCER_DRIVERS
+        total = len(genes)
+        enrichment = len(hits) / total if total else 0.0
+        self.dnabert_metrics["driver_genes_found"] = sorted(hits)
+        self.dnabert_metrics["driver_enrichment"] = enrichment
+        self.dnabert_metrics["n_driver_hits"] = len(hits)
+
+    def _compute_all_metrics(self) -> None:
+        """Compute DNABERT-2 and pipeline evaluation metrics.
+
+        Combines instability statistics and cancer driver enrichment
+        into a single evaluation pass.
+        """
+        self._compute_dnabert_metrics()
+        self._compute_driver_enrichment()
+
+    def _run_all_annotations(self) -> None:
+        """Run all downstream annotation steps on scored results.
+
+        Executes pathway enrichment, drug-target mapping, resistance
+        scoring, and network pharmacology in sequence.
+        """
+        self._enrich_pathways()
+        self._annotate_drugs()
+        self._score_resistance()
+        self._annotate_network()
+
     # ── public API ───────────────────────────────────────────────────────
 
     def _filter_gene_columns(
@@ -302,10 +441,8 @@ class FusionEngine:
         X = self._filter_gene_columns(X)
         top = self._train_xgboost(X, y)
         self._score_instability(top, self._fetch_sequences(top))
-        self._enrich_pathways()
-        self._annotate_drugs()
-        self._score_resistance()
-        self._annotate_network()
+        self._compute_all_metrics()
+        self._run_all_annotations()
         return self.results
 
     # ── summary helpers ──────────────────────────────────────────────────
@@ -367,6 +504,51 @@ class FusionEngine:
             std = m.get(f"std_{key}", 0)
             lines.append(f"  {label:>10s}: {mean:.4f} ± {std:.4f}")
 
+    def _append_dnabert_metrics(self, lines: list[str]) -> None:
+        """Append DNABERT-2 evaluation metrics to summary lines.
+
+        Parameters
+        ----------
+        lines : list[str]
+            Mutable list of summary lines to extend.
+        """
+        if not self.dnabert_metrics:
+            return
+        m = self.dnabert_metrics
+        lines.append("\nDNABERT-2 Evaluation Metrics:")
+        lines.append(f"  Mean Instability: {m['mean_instability']:.6f}")
+        lines.append(f"  Std  Instability: {m['std_instability']:.6f}")
+        lines.append(f"  Range: {m['min_instability']:.6f} \u2013 {m['max_instability']:.6f}")
+        lines.append(f"  Signal-to-Noise: {m['signal_noise_ratio']:.2f}")
+
+    def _format_driver_line(self) -> str:
+        """Format the cancer driver enrichment as a summary string.
+
+        Returns
+        -------
+        str
+            Formatted enrichment line with gene names.
+        """
+        m = self.dnabert_metrics
+        hits = m.get("n_driver_hits", 0)
+        total = m.get("n_genes_scored", 0)
+        pct = m.get("driver_enrichment", 0) * 100
+        drivers = ", ".join(m.get("driver_genes_found", []))
+        return f"  Driver Enrichment: {hits}/{total} ({pct:.0f}%) [{drivers}]"
+
+    def _append_pipeline_metrics(self, lines: list[str]) -> None:
+        """Append fusion pipeline evaluation metrics to summary lines.
+
+        Parameters
+        ----------
+        lines : list[str]
+            Mutable list of summary lines to extend.
+        """
+        if not self.dnabert_metrics:
+            return
+        lines.append("\nFusion Pipeline Evaluation:")
+        lines.append(self._format_driver_line())
+
     # ── convenience ──────────────────────────────────────────────────────
 
     def summary(self) -> str:
@@ -375,11 +557,14 @@ class FusionEngine:
         Returns
         -------
         str
-            Multi-line string containing a boxed ranking table and
-            XGBoost cross-validation metrics (if available).
+            Multi-line string containing a boxed ranking table,
+            XGBoost CV metrics, DNABERT-2 metrics, and pipeline
+            evaluation (if available).
         """
         if self.results.empty:
             return "No analysis has been run yet."
         lines = self._build_ranking_lines()
         self._append_cv_metrics(lines)
+        self._append_dnabert_metrics(lines)
+        self._append_pipeline_metrics(lines)
         return "\n".join(lines)

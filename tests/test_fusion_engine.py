@@ -133,6 +133,7 @@ def _build_engine(cfg):
     engine.network = net
     engine.results = pd.DataFrame()
     engine.cv_metrics = {}
+    engine.dnabert_metrics = {}
     return engine
 
 

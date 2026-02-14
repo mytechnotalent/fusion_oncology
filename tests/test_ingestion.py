@@ -372,3 +372,113 @@ class TestPersistAndLog:
         y = pd.Series(["A"])
         ing._persist_and_log(X, y)
         assert ing.cache.save_dataframe.call_count == 2
+
+
+# ── _fetch_remote_zip tests ─────────────────────────────────────────────
+
+
+class TestFetchRemoteZip:
+    """Tests for ``DataIngestion._fetch_remote_zip``."""
+
+    @patch("fusion_oncology.data.ingestion.requests.get")
+    def test_fetches_and_caches(self, mock_get, cfg) -> None:
+        """Should download ZIP bytes and cache them.
+
+        Parameters
+        ----------
+        mock_get : MagicMock
+            Patch for ``requests.get``.
+        cfg : ProjectConfig
+            Fixture-injected test configuration.
+        """
+        mock_resp = MagicMock()
+        mock_resp.content = _build_simple_zip()
+        mock_get.return_value = mock_resp
+        ing = DataIngestion(cfg)
+        ing.cache = MagicMock()
+        result = ing._fetch_remote_zip()
+        assert isinstance(result, bytes)
+        ing.cache.save_bytes.assert_called_once()
+
+
+# ── _download_zip tests ─────────────────────────────────────────────────
+
+
+class TestDownloadZip:
+    """Tests for ``DataIngestion._download_zip``."""
+
+    def test_uses_cache_when_available(self, cfg) -> None:
+        """Should return a ZipFile from cached bytes.
+
+        Parameters
+        ----------
+        cfg : ProjectConfig
+            Fixture-injected test configuration.
+        """
+        raw = _build_simple_zip()
+        ing = DataIngestion(cfg)
+        ing.cache = MagicMock()
+        ing.cache.has_bytes.return_value = True
+        ing.cache.load_bytes.return_value = raw
+        zf = ing._download_zip()
+        assert isinstance(zf, zipfile.ZipFile)
+
+    @patch("fusion_oncology.data.ingestion.requests.get")
+    def test_downloads_when_not_cached(self, mock_get, cfg) -> None:
+        """Should download when cache is empty.
+
+        Parameters
+        ----------
+        mock_get : MagicMock
+            Patch for ``requests.get``.
+        cfg : ProjectConfig
+            Fixture-injected test configuration.
+        """
+        mock_resp = MagicMock()
+        mock_resp.content = _build_simple_zip()
+        mock_get.return_value = mock_resp
+        ing = DataIngestion(cfg)
+        ing.cache = MagicMock()
+        ing.cache.has_bytes.return_value = False
+        ing.cache.save_bytes.return_value = None
+        zf = ing._download_zip()
+        assert isinstance(zf, zipfile.ZipFile)
+
+
+# ── _load_cached_patient_data tests ─────────────────────────────────────
+
+
+class TestLoadCachedPatientData:
+    """Tests for ``DataIngestion._load_cached_patient_data``."""
+
+    def test_returns_none_when_not_cached(self, cfg) -> None:
+        """Should return None when cache does not have both frames.
+
+        Parameters
+        ----------
+        cfg : ProjectConfig
+            Fixture-injected test configuration.
+        """
+        ing = DataIngestion(cfg)
+        ing.cache = MagicMock()
+        ing.cache.has_dataframe.return_value = False
+        assert ing._load_cached_patient_data() is None
+
+    def test_returns_cached_data(self, cfg) -> None:
+        """Should return (X, y) when both frames are cached.
+
+        Parameters
+        ----------
+        cfg : ProjectConfig
+            Fixture-injected test configuration.
+        """
+        ing = DataIngestion(cfg)
+        ing.cache = MagicMock()
+        ing.cache.has_dataframe.return_value = True
+        ing.cache.load_dataframe.side_effect = [
+            pd.DataFrame({"G1": [1, 2]}),
+            pd.DataFrame({"Label": ["A", "B"]}),
+        ]
+        result = ing._load_cached_patient_data()
+        assert result is not None
+        assert len(result[0]) == 2

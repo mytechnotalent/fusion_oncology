@@ -6,7 +6,7 @@
 
 # Fusion Oncology
 
-Comprehensive precision oncology platform fusing XGBoost feature importance, DNABERT-2 sequence embeddings, multi-omics integration, clinical evidence aggregation, and computational pharmacology to identify, validate, and prioritise high-impact therapeutic strategies for cancer.
+Fusion Oncology is an end-to-end research pipeline that transforms RNA-Seq expression data into standardized AMP/ASCO/CAP-tiered reports. By fusing XGBoost feature importance with DNABERT-2 sequence analysis, the platform calculates a unique Fusion Index to prioritize therapeutic targets based on expression significance and mutational instability.
 
 ---
 
