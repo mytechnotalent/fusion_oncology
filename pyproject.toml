@@ -37,6 +37,7 @@ dependencies = [
     "rich>=12.4",
     "lifelines>=0.28",
     "pyarrow>=14.0",
+    "optuna>=3.6",
 ]
 
 [project.optional-dependencies]

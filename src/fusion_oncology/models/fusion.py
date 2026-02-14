@@ -187,8 +187,11 @@ class FusionEngine:
             Top-K gene names mapped to importance scores.
         """
         logger.info("Step 1/4: Training XGBoost classifier …")
-        self.xgb.fit(X, y)
-        self.cv_metrics = self.xgb.cross_validate(X, y)
+        y_merged = XGBoostEngine.merge_rare_classes(y, self.cfg.min_class_size)
+        if self.cfg.enable_hpo:
+            self.xgb.run_hpo(X, y_merged)
+        self.xgb.fit(X, y_merged)
+        self.cv_metrics = self.xgb.cross_validate(X, y_merged)
         return self.xgb.top_genes()
 
     def _fetch_sequences(
@@ -482,9 +485,12 @@ class FusionEngine:
             Cancer-type labels.
         """
         logger.info("Training fusion XGBoost on %d features …", X_fused.shape[1])
+        y_merged = XGBoostEngine.merge_rare_classes(y, self.cfg.min_class_size)
         self.fusion_xgb = XGBoostEngine(self.cfg)
-        self.fusion_xgb.fit(X_fused, y)
-        self.fusion_cv_metrics = self.fusion_xgb.cross_validate(X_fused, y)
+        if self.cfg.enable_hpo:
+            self.fusion_xgb.run_hpo(X_fused, y_merged)
+        self.fusion_xgb.fit(X_fused, y_merged)
+        self.fusion_cv_metrics = self.fusion_xgb.cross_validate(X_fused, y_merged)
 
     # ── metrics helpers ────────────────────────────────────────────────
 

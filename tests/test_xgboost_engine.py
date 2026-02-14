@@ -39,7 +39,10 @@ def test_all_importances(synthetic_expression, tiny_config):
     eng.fit(X, y)
     imp = eng.all_importances()
     assert isinstance(imp, pd.Series)
-    assert len(imp) == X.select_dtypes(include=[np.number]).shape[1]
+    # 50 original gene cols + 10 engineered features = 60
+    n_original = X.select_dtypes(include=[np.number]).shape[1]
+    n_engineered = 10  # row_mean, row_std, row_skew, row_kurt, etc.
+    assert len(imp) == n_original + n_engineered
     # Importances should be non-negative
     assert (imp >= 0).all()
 
@@ -195,3 +198,93 @@ def test_all_importances_before_fit_raises(tiny_config):
         assert False, "Should have raised RuntimeError"
     except RuntimeError:
         pass
+
+
+# ── class merging tests ──────────────────────────────────────────────────
+
+
+def test_merge_rare_classes_no_merge(tiny_config):
+    """When all classes exceed min_size, no merging occurs.
+
+    Parameters
+    ----------
+    tiny_config : ProjectConfig
+        Lightweight config fixture.
+    """
+    y = pd.Series(["A"] * 30 + ["B"] * 30)
+    result = XGBoostEngine.merge_rare_classes(y, min_size=10)
+    assert "OTHER" not in result.values
+    assert set(result.unique()) == {"A", "B"}
+
+
+def test_merge_rare_classes_merges_small(tiny_config):
+    """Rare classes below threshold are merged to OTHER.
+
+    Parameters
+    ----------
+    tiny_config : ProjectConfig
+        Lightweight config fixture.
+    """
+    y = pd.Series(["A"] * 30 + ["B"] * 30 + ["C"] * 3 + ["D"] * 2)
+    result = XGBoostEngine.merge_rare_classes(y, min_size=10)
+    assert "OTHER" in result.values
+    assert "C" not in result.values
+    assert "D" not in result.values
+    assert "A" in result.values
+    assert "B" in result.values
+
+
+def test_merge_rare_preserves_count(tiny_config):
+    """Total sample count must remain unchanged after merging.
+
+    Parameters
+    ----------
+    tiny_config : ProjectConfig
+        Lightweight config fixture.
+    """
+    y = pd.Series(["A"] * 20 + ["B"] * 20 + ["C"] * 5)
+    result = XGBoostEngine.merge_rare_classes(y, min_size=10)
+    assert len(result) == len(y)
+
+
+# ── feature engineering tests ────────────────────────────────────────────
+
+
+def test_engineer_features_adds_columns():
+    """Verify 10 statistical features are appended.
+
+    Ensures row_mean, row_std, row_skew, row_kurt, row_max, row_min,
+    row_range, row_median, row_iqr, row_cv are added.
+    """
+    X = pd.DataFrame(np.random.default_rng(0).random((10, 5)), columns=[f"G{i}" for i in range(5)])
+    result = XGBoostEngine.engineer_features(X)
+    assert result.shape[1] == 15  # 5 original + 10 engineered
+    expected = {
+        "_row_mean",
+        "_row_std",
+        "_row_skew",
+        "_row_kurt",
+        "_row_max",
+        "_row_min",
+        "_row_range",
+        "_row_median",
+        "_row_iqr",
+        "_row_cv",
+    }
+    assert expected.issubset(set(result.columns))
+
+
+def test_engineer_features_preserves_index():
+    """Verify the original index is preserved after engineering."""
+    idx = [100, 200, 300]
+    X = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=idx)
+    result = XGBoostEngine.engineer_features(X)
+    assert list(result.index) == idx
+
+
+def test_engineer_features_handles_constant_rows():
+    """Rows with zero variance should not produce NaN or Inf."""
+    X = pd.DataFrame({"A": [5.0, 5.0], "B": [5.0, 5.0]})
+    result = XGBoostEngine.engineer_features(X)
+    assert not result.isnull().any().any()
+    assert np.all(np.isfinite(result.values))

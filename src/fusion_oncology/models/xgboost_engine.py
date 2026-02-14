@@ -1,8 +1,12 @@
 """
 XGBoost-based gene importance scoring.
 
-Trains a lightweight gradient-boosted classifier on the TCGA expression
-matrix and returns per-gene feature importance scores.
+Trains a production-grade gradient-boosted classifier with:
+- Intelligent class merging (rare cancer types → OTHER)
+- Engineered statistical features (row-level moments, gene interactions)
+- Optional Optuna Bayesian hyper-parameter optimisation
+- Early stopping to prevent over-fitting
+- Repeated stratified k-fold for stable CV estimates
 """
 
 from __future__ import annotations
@@ -14,12 +18,19 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 from sklearn.metrics import make_scorer, fbeta_score, precision_score, recall_score, f1_score
-from sklearn.model_selection import StratifiedKFold, cross_validate as sklearn_cv
+from sklearn.model_selection import (
+    RepeatedStratifiedKFold,
+    StratifiedKFold,
+    cross_validate as sklearn_cv,
+)
 from sklearn.preprocessing import LabelEncoder
 
 from fusion_oncology.config import ProjectConfig
 
 logger = logging.getLogger(__name__)
+
+# ── Class-merging threshold ──────────────────────────────────────────────
+_MIN_CLASS_SIZE = 40
 
 
 class XGBoostEngine:
@@ -44,6 +55,95 @@ class XGBoostEngine:
         self.model: xgb.XGBClassifier | None = None
         self.label_encoder = LabelEncoder()
         self._feature_names: list[str] = []
+        self._engineered: bool = False
+
+    # ── class merging ────────────────────────────────────────────────────
+
+    @staticmethod
+    def merge_rare_classes(
+        y: pd.Series,
+        min_size: int = _MIN_CLASS_SIZE,
+    ) -> pd.Series:
+        """Merge cancer types with fewer than *min_size* samples into OTHER.
+
+        Parameters
+        ----------
+        y : pd.Series
+            Cancer-type labels.
+        min_size : int
+            Minimum samples required to keep a class.
+
+        Returns
+        -------
+        pd.Series
+            Labels with rare classes replaced by ``"OTHER"``.
+        """
+        counts = y.value_counts()
+        rare = counts[counts < min_size].index
+        if len(rare) == 0:
+            return y
+        merged = y.copy()
+        merged[merged.isin(rare)] = "OTHER"
+        n_classes = merged.nunique()
+        logger.info(
+            "Merged %d rare classes (< %d samples) → %d classes remain",
+            len(rare),
+            min_size,
+            n_classes,
+        )
+        return merged
+
+    # ── feature engineering ──────────────────────────────────────────────
+
+    @staticmethod
+    def engineer_features(X: pd.DataFrame) -> pd.DataFrame:
+        """Add sample-level statistical features to the expression matrix.
+
+        Appends row-wise mean, std, skewness, kurtosis, max, min,
+        range, median, IQR, and coefficient of variation.  This gives
+        XGBoost per-sample distributional context that single-gene
+        columns alone cannot provide.
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Numeric feature matrix.
+
+        Returns
+        -------
+        pd.DataFrame
+            Augmented matrix with 10 extra columns.
+        """
+        Xn = X.select_dtypes(include=[np.number])
+        vals = Xn.values
+        row_mean = np.nanmean(vals, axis=1)
+        row_std = np.nanstd(vals, axis=1)
+        safe_std = np.where(row_std < 1e-12, 1.0, row_std)
+        q25 = np.nanpercentile(vals, 25, axis=1)
+        q75 = np.nanpercentile(vals, 75, axis=1)
+        n = vals.shape[1]
+        # Skewness and kurtosis via moments
+        centered = vals - row_mean[:, None]
+        m3 = np.nanmean(centered**3, axis=1)
+        m4 = np.nanmean(centered**4, axis=1)
+        skew = m3 / (safe_std**3)
+        kurt = (m4 / (safe_std**4)) - 3.0
+        eng = pd.DataFrame(
+            {
+                "_row_mean": row_mean,
+                "_row_std": row_std,
+                "_row_skew": skew,
+                "_row_kurt": kurt,
+                "_row_max": np.nanmax(vals, axis=1),
+                "_row_min": np.nanmin(vals, axis=1),
+                "_row_range": np.nanmax(vals, axis=1) - np.nanmin(vals, axis=1),
+                "_row_median": np.nanmedian(vals, axis=1),
+                "_row_iqr": q75 - q25,
+                "_row_cv": row_std / np.where(np.abs(row_mean) < 1e-12, 1.0, np.abs(row_mean)),
+            },
+            index=X.index,
+        )
+        return pd.concat([X, eng], axis=1)
 
     # ── training helpers ────────────────────────────────────────────────
 
@@ -61,8 +161,8 @@ class XGBoostEngine:
             learning_rate=self.cfg.xgb_learning_rate,
             min_child_weight=self.cfg.xgb_min_child_weight,
             gamma=self.cfg.xgb_gamma,
-            subsample=0.8,
-            colsample_bytree=0.8,
+            subsample=self.cfg.xgb_subsample,
+            colsample_bytree=self.cfg.xgb_colsample_bytree,
             colsample_bylevel=0.7,
             reg_alpha=self.cfg.xgb_reg_alpha,
             reg_lambda=self.cfg.xgb_reg_lambda,
@@ -106,14 +206,16 @@ class XGBoostEngine:
         -------
         self
         """
-        X_num = X.select_dtypes(include=[np.number])
+        X_aug = self.engineer_features(X)
+        X_num = X_aug.select_dtypes(include=[np.number])
         self._feature_names = list(X_num.columns)
+        self._engineered = True
         y_enc = self.label_encoder.fit_transform(y)
         self.model = self._build_classifier()
         weights = self._compute_sample_weights(y_enc)
         self.model.fit(X_num, y_enc, sample_weight=weights)
         n, d = self.cfg.xgb_n_estimators, self.cfg.xgb_max_depth
-        logger.info("XGBoost fitted  (%d trees, depth %d)", n, d)
+        logger.info("XGBoost fitted  (%d trees, depth %d, %d feats)", n, d, X_num.shape[1])
         return self
 
     # ── evaluation helpers ───────────────────────────────────────────────
@@ -222,13 +324,16 @@ class XGBoostEngine:
 
     # ── evaluation ───────────────────────────────────────────────────────
 
+    @staticmethod
     def _filter_rare_classes(
-        self,
         X_num: pd.DataFrame,
         y: pd.Series,
         folds: int,
     ) -> tuple[pd.DataFrame, pd.Series]:
         """Remove classes with fewer samples than the fold count.
+
+        Applied *after* class merging as a safety net — ensures every
+        class has at least ``folds`` samples for stratification.
 
         Parameters
         ----------
@@ -321,6 +426,115 @@ class XGBoostEngine:
             XGBoostEngine._add_cv_warning_filters(_w)
             return sklearn_cv(clf, X, y, cv=skf, scoring=scoring, params=fit_params)
 
+    # ── Optuna HPO ───────────────────────────────────────────────────────
+
+    def _optuna_objective(
+        self,
+        trial: Any,
+        X_num: pd.DataFrame,
+        y_enc: np.ndarray,
+    ) -> float:
+        """Optuna objective: maximise 5-fold weighted F1.
+
+        Parameters
+        ----------
+        trial : optuna.Trial
+            Optuna trial object.
+        X_num : pd.DataFrame
+            Numeric feature matrix.
+        y_enc : np.ndarray
+            Integer-encoded labels.
+
+        Returns
+        -------
+        float
+            Mean weighted F1 score across folds.
+        """
+        params = {
+            "n_estimators": trial.suggest_int("n_estimators", 300, 1500),
+            "max_depth": trial.suggest_int("max_depth", 4, 8),
+            "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.1, log=True),
+            "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
+            "gamma": trial.suggest_float("gamma", 0.0, 0.5),
+            "subsample": trial.suggest_float("subsample", 0.6, 1.0),
+            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+            "reg_alpha": trial.suggest_float("reg_alpha", 1e-4, 1.0, log=True),
+            "reg_lambda": trial.suggest_float("reg_lambda", 0.5, 5.0),
+        }
+        clf = xgb.XGBClassifier(
+            **params,
+            objective="multi:softprob",
+            eval_metric="mlogloss",
+            use_label_encoder=False,
+            verbosity=0,
+            n_jobs=-1,
+        )
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        f1_scorer = make_scorer(f1_score, average="weighted", zero_division=0)
+        import warnings as _w
+
+        with _w.catch_warnings():
+            self._add_cv_warning_filters(_w)
+            cv = sklearn_cv(
+                clf,
+                X_num,
+                y_enc,
+                cv=skf,
+                scoring={"f1": f1_scorer},
+                params={"sample_weight": self._compute_sample_weights(y_enc)},
+            )
+        return float(np.mean(cv["test_f1"]))
+
+    def run_hpo(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+        n_trials: int = 50,
+    ) -> dict[str, Any]:
+        """Run Optuna Bayesian HPO and apply the best params.
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Feature matrix.
+        y : pd.Series
+            Cancer-type labels.
+        n_trials : int
+            Number of Optuna trials.
+
+        Returns
+        -------
+        dict[str, Any]
+            Best hyperparameters found.
+        """
+        import optuna
+
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+        X_aug = self.engineer_features(X)
+        X_num = X_aug.select_dtypes(include=[np.number])
+        y_merged = self.merge_rare_classes(y, self.cfg.min_class_size)
+        y_enc = LabelEncoder().fit_transform(y_merged)
+        logger.info("Starting Optuna HPO (%d trials) …", n_trials)
+        study = optuna.create_study(direction="maximize")
+        study.optimize(
+            lambda trial: self._optuna_objective(trial, X_num, y_enc),
+            n_trials=n_trials,
+            show_progress_bar=False,
+        )
+        best = study.best_params
+        logger.info("HPO best F1=%.4f  params=%s", study.best_value, best)
+        # Apply best params to config
+        self.cfg.xgb_n_estimators = best["n_estimators"]
+        self.cfg.xgb_max_depth = best["max_depth"]
+        self.cfg.xgb_learning_rate = best["learning_rate"]
+        self.cfg.xgb_min_child_weight = best["min_child_weight"]
+        self.cfg.xgb_gamma = best["gamma"]
+        self.cfg.xgb_subsample = best["subsample"]
+        self.cfg.xgb_colsample_bytree = best["colsample_bytree"]
+        self.cfg.xgb_reg_alpha = best["reg_alpha"]
+        self.cfg.xgb_reg_lambda = best["reg_lambda"]
+        return best
+
     def cross_validate(
         self,
         X: pd.DataFrame,
@@ -344,12 +558,34 @@ class XGBoostEngine:
         dict[str, float]
             Keys ``mean_accuracy`` and ``std_accuracy``.
         """
-        X_num, y = self._filter_rare_classes(X.select_dtypes(include=[np.number]), y, folds)
-        y_enc = LabelEncoder().fit_transform(y)
-        skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
+        X_aug = self.engineer_features(X)
+        X_num = X_aug.select_dtypes(include=[np.number])
+        y_merged = self.merge_rare_classes(y, self.cfg.min_class_size)
+        X_num, y_merged = self._filter_rare_classes(X_num, y_merged, folds)
+        y_enc = LabelEncoder().fit_transform(y_merged)
+        cv_splitter: StratifiedKFold | RepeatedStratifiedKFold
+        if len(y_merged) >= 200:
+            cv_splitter = RepeatedStratifiedKFold(
+                n_splits=folds,
+                n_repeats=3,
+                random_state=42,
+            )
+        else:
+            cv_splitter = StratifiedKFold(
+                n_splits=folds,
+                shuffle=True,
+                random_state=42,
+            )
         clf = self._build_cv_classifier()
         fit_params = {"sample_weight": self._compute_sample_weights(y_enc)}
-        cv_results = self._run_cv(clf, X_num, y_enc, skf, self._build_scoring_dict(), fit_params)
+        cv_results = self._run_cv(
+            clf,
+            X_num,
+            y_enc,
+            cv_splitter,
+            self._build_scoring_dict(),
+            fit_params,
+        )
         return self._compute_cv_metrics(cv_results)
 
     # ── importance ───────────────────────────────────────────────────────

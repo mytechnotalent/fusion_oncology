@@ -57,6 +57,16 @@ class ProjectConfig:
         L1 regularisation term on weights.
     xgb_reg_lambda : float
         L2 regularisation term on weights.
+    xgb_subsample : float
+        Row sub-sampling ratio per tree.
+    xgb_colsample_bytree : float
+        Column sub-sampling ratio per tree.
+    min_class_size : int
+        Minimum samples per cancer type; smaller classes are merged
+        into ``"OTHER"`` before training.
+    enable_hpo : bool
+        Whether to run Optuna hyperparameter optimisation before final
+        training.  Disabled by default for speed.
     pathway_db : str
         Pathway database selector (``"kegg"`` or ``"reactome"``).
     enrichment_pval : float
@@ -115,15 +125,19 @@ class ProjectConfig:
     entrez_retmax: int = 1
 
     # ── Analysis hyper-parameters ────────────────────────────────────────
-    top_k_genes: int = 5
+    top_k_genes: int = 15
     fuzz_iterations: int = 20
-    xgb_n_estimators: int = 500
-    xgb_max_depth: int = 8
-    xgb_learning_rate: float = 0.05
-    xgb_min_child_weight: int = 3
-    xgb_gamma: float = 0.1
-    xgb_reg_alpha: float = 0.1
-    xgb_reg_lambda: float = 1.5
+    xgb_n_estimators: int = 1000
+    xgb_max_depth: int = 6
+    xgb_learning_rate: float = 0.03
+    xgb_min_child_weight: int = 5
+    xgb_gamma: float = 0.2
+    xgb_reg_alpha: float = 0.3
+    xgb_reg_lambda: float = 2.0
+    xgb_subsample: float = 0.8
+    xgb_colsample_bytree: float = 0.8
+    min_class_size: int = 40
+    enable_hpo: bool = False
 
     # ── Pathway enrichment ───────────────────────────────────────────────
     pathway_db: str = "kegg"  # "kegg" | "reactome"

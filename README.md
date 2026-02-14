@@ -6,19 +6,25 @@
 
 # Fusion Oncology
 
-Fusion Oncology is an end-to-end research pipeline that transforms drug sensitivity data into standardized AMP/ASCO/CAP-tiered reports. It builds a **true multi-modal fusion model** — a single XGBoost classifier trained on drug sensitivity features concatenated with DNABERT-2 sequence embeddings — to prioritize therapeutic targets based on learned genomic context rather than heuristic scoring.
+Fusion Oncology is an end-to-end research pipeline that transforms drug sensitivity data into standardized AMP/ASCO/CAP-tiered reports. It builds a **production-grade multi-modal fusion model** — a single XGBoost classifier trained on drug sensitivity features, 10 engineered distributional features, and sensitivity-weighted DNABERT-2 sequence embeddings — to prioritise therapeutic targets. The pipeline includes intelligent class merging, optional Optuna Bayesian hyperparameter optimization, and repeated stratified cross-validation for maximum metric stability.
 
 ---
 
 ## What It Does
 
-Fusion Oncology builds a **true multi-modal fusion model** that combines two data sources into a single learned classifier:
+Fusion Oncology builds a **production-grade multi-modal fusion model** that combines three signal sources into a single learned classifier:
 
-| Component        | Method                                     | What it captures                                   |
-| ---------------- | ------------------------------------------ | -------------------------------------------------- |
-| **Drug sens.**   | XGBoost baseline on GDSC LN_IC50 features  | Which genes best discriminate cancer types         |
-| **Genomic ctx.** | DNABERT-2 768-dim embeddings × drug sens.  | Sensitivity-weighted structural gene context       |
-| **Fusion model** | XGBoost on concatenated (N + 768) features | Jointly learned drug sensitivity + sequence signal |
+| Component        | Method                                          | What it captures                                           |
+| ---------------- | ----------------------------------------------- | ---------------------------------------------------------- |
+| **Drug sens.**   | XGBoost on GDSC LN_IC50 features                | Which genes best discriminate cancer types                 |
+| **Engineered**   | 10 row-level distributional features per sample | Per-sample mean, std, skew, kurtosis, IQR, CV              |
+| **Genomic ctx.** | DNABERT-2 768-dim embeddings × drug sensitivity | Sensitivity-weighted structural gene context               |
+| **Fusion model** | XGBoost on concatenated (N + 10 + 768) features | Jointly learned drug sensitivity + distribution + sequence |
+
+The pipeline includes:
+- **Intelligent class merging** — rare cancer types (< 40 samples) → "OTHER"
+- **Repeated stratified CV** — 5-fold × 3 repeats for stable metric estimates
+- **Optional Optuna HPO** — 50-trial Bayesian hyperparameter search
 
 The fusion model produces **one unified set of CV metrics** (Accuracy, Precision, Recall, F1, F2, ROC AUC). The **Fusion Index** (importance × instability × 1000) ranks targets that are both biologically important *and* structurally vulnerable.
 

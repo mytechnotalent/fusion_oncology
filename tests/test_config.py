@@ -10,14 +10,18 @@ def test_defaults():
 
     Asserts
     -------
-    - ``top_k_genes`` defaults to 5.
+    - ``top_k_genes`` defaults to 15.
     - ``fuzz_iterations`` defaults to 20.
-    - ``xgb_n_estimators`` defaults to 500.
+    - ``xgb_n_estimators`` defaults to 1000.
+    - ``min_class_size`` defaults to 40.
+    - ``enable_hpo`` defaults to False.
     """
     cfg = ProjectConfig()
-    assert cfg.top_k_genes == 5
+    assert cfg.top_k_genes == 15
     assert cfg.fuzz_iterations == 20
-    assert cfg.xgb_n_estimators == 500
+    assert cfg.xgb_n_estimators == 1000
+    assert cfg.min_class_size == 40
+    assert cfg.enable_hpo is False
 
 
 def test_override(tmp_path):

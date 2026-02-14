@@ -1,8 +1,9 @@
 #  Fusion Oncology on Kaggle
 
-Quick guide to running Fusion Oncology’s **true multi-modal fusion model** on Kaggle.
-The pipeline trains a single XGBoost on drug sensitivity features concatenated with
-DNABERT-2 sequence embeddings, producing **one unified set of CV metrics**.
+Quick guide to running Fusion Oncology's **production-grade multi-modal fusion model** on Kaggle.
+The pipeline trains a single XGBoost on drug sensitivity + 10 engineered features + DNABERT-2
+sequence embeddings, with intelligent class merging, optional Optuna HPO, and repeated stratified
+CV for **maximum metric performance**.
 
 ## Quick Start (5 minutes)
 

@@ -36,6 +36,7 @@ def cfg(tmp_path):
         fuzz_iterations=2,
         xgb_n_estimators=5,
         xgb_max_depth=2,
+        min_class_size=5,
     )
 
 
