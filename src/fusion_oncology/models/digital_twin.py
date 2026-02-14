@@ -176,7 +176,7 @@ class SimulationConfig:
     initial_tumour_size: float = 1e9
     growth_rate: float = 0.02
     carrying_capacity: float = 1e12
-    immune_kill_rate: float = 0.001
+    immune_kill_rate: float = 1e-9
     immune_recruitment: float = 1e-7
     immune_exhaustion: float = 0.05
     resistant_fraction: float = 0.01

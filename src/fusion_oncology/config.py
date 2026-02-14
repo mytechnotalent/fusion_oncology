@@ -29,6 +29,9 @@ class ProjectConfig:
         ``~/.cache/fusion_oncology`` or the ``FUSION_CACHE`` env-var.
     model_path : str
         Hugging Face model identifier for the DNABERT-2 transformer.
+    dnabert_revision : str
+        Pinned Git revision (commit SHA) on Hugging Face Hub.  Prevents
+        auto-downloading new (potentially untrusted) remote code files.
     max_seq_len : int
         Maximum token length for DNABERT-2 input sequences.
     entrez_email : str
@@ -94,6 +97,7 @@ class ProjectConfig:
 
     # ── DNABERT model ────────────────────────────────────────────────────
     model_path: str = "zhihan1996/DNABERT-2-117M"
+    dnabert_revision: str = "7bce263b15377fc15361f52cfab88f8b586abda0"
     max_seq_len: int = 512
 
     # ── NCBI Entrez ──────────────────────────────────────────────────────

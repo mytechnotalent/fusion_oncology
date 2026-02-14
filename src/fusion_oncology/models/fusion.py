@@ -11,6 +11,7 @@ synthetic lethality screening, and network pharmacology scoring.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import pandas as pd
@@ -51,6 +52,8 @@ class FusionEngine:
     config : ProjectConfig
         Runtime configuration.
     """
+
+    _GENE_RE = re.compile(r"^[A-Z][A-Z0-9/-]*$")
 
     # ── initialisation helpers ───────────────────────────────────────────
 
@@ -245,6 +248,41 @@ class FusionEngine:
 
     # ── public API ───────────────────────────────────────────────────────
 
+    def _filter_gene_columns(
+        self,
+        X: pd.DataFrame,
+    ) -> pd.DataFrame:
+        """Keep only columns whose names resemble gene symbols.
+
+        Filters out non-gene column names (e.g. ``Retinoic acid``,
+        ``others``) that cannot be processed by DNABERT-2 sequence
+        analysis.
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Input feature matrix.
+
+        Returns
+        -------
+        pd.DataFrame
+            Filtered matrix with only gene-symbol columns.
+        """
+        gene_cols = [c for c in X.columns if self._GENE_RE.match(str(c))]
+        dropped = set(X.columns) - set(gene_cols)
+        if dropped:
+            logger.info(
+                "Filtered %d non-gene columns: %s",
+                len(dropped),
+                sorted(dropped)[:5],
+            )
+        if not gene_cols:
+            logger.warning(
+                "No gene-symbol columns found; using all columns",
+            )
+            return X
+        return X[gene_cols]
+
     def run(self, X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
         """Execute the full fusion pipeline.
 
@@ -261,6 +299,7 @@ class FusionEngine:
             Ranked targets with columns:
             ``Gene | XGB_Importance | Instability | Fusion_Index``
         """
+        X = self._filter_gene_columns(X)
         top = self._train_xgboost(X, y)
         self._score_instability(top, self._fetch_sequences(top))
         self._enrich_pathways()

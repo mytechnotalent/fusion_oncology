@@ -82,7 +82,9 @@ class DNABERTEngine:
         if self._tokenizer is None:
             logger.info("Loading tokenizer from %s …", self.cfg.model_path)
             self._tokenizer = AutoTokenizer.from_pretrained(
-                self.cfg.model_path, trust_remote_code=True
+                self.cfg.model_path,
+                trust_remote_code=True,
+                revision=self.cfg.dnabert_revision,
             )
         return self._tokenizer
 
@@ -101,11 +103,16 @@ class DNABERTEngine:
         """
         if self._model is None:
             logger.info("Loading DNABERT-2 on %s …", self.device)
-            config = AutoConfig.from_pretrained(self.cfg.model_path, trust_remote_code=True)
+            config = AutoConfig.from_pretrained(
+                self.cfg.model_path,
+                trust_remote_code=True,
+                revision=self.cfg.dnabert_revision,
+            )
             self._model = AutoModel.from_pretrained(
                 self.cfg.model_path,
                 config=config,
                 trust_remote_code=True,
+                revision=self.cfg.dnabert_revision,
             ).to(self.device)
             # DNABERT-2 bundles a Triton flash-attention kernel that is
             # incompatible with Triton >= 3.0 (removed ``trans_b`` kwarg
@@ -248,7 +255,9 @@ class DNABERTEngine:
         """
         with torch.no_grad():
             outputs = self.model(**inputs)
-        return outputs.last_hidden_state.mean(dim=1).cpu().numpy()
+        # DNABERT-2 returns a plain tuple, not BaseModelOutput.
+        hidden = outputs[0]
+        return hidden.mean(dim=1).cpu().numpy()
 
     # ── public batch API ─────────────────────────────────────────────────
 

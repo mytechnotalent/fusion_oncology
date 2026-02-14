@@ -174,7 +174,27 @@ class XGBoostEngine:
             Keys ``mean_accuracy`` and ``std_accuracy``.
         """
         X_num = X.select_dtypes(include=[np.number])
-        y_enc = self._encode_labels(y)
+
+        # Filter out classes with fewer samples than folds to prevent
+        # XGBoost label-mismatch errors when a class is absent from a
+        # training fold.
+        class_counts = y.value_counts()
+        rare = class_counts[class_counts < folds].index
+        if len(rare):
+            logger.info(
+                "Filtering %d rare classes (< %d samples) for CV: %s",
+                len(rare),
+                folds,
+                list(rare)[:5],
+            )
+            mask = ~y.isin(rare)
+            X_num = X_num.loc[mask]
+            y = y.loc[mask]
+
+        # Re-encode to contiguous 0..N-1 for the filtered subset
+        le = LabelEncoder()
+        y_enc = le.fit_transform(y)
+
         skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
         clf = self._build_cv_classifier()
         scores = cross_val_score(clf, X_num, y_enc, cv=skf, scoring="accuracy")
