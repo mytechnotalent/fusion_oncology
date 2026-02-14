@@ -210,3 +210,9 @@ __marimo__/
 /_*.py
 /_*.txt
 /_*.md
+
+# Kaggle outputs
+/kaggle/
+__notebook__.ipynb
+__output__.json
+kernel-metadata.json

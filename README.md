@@ -76,6 +76,19 @@ fusion-oncology companion-dx --mutations "EGFR:T790M,BRAF:V600E" --cancer-type N
 fusion-oncology report results/fusion_results.csv
 ```
 
+### 📊 Kaggle Integration
+
+Run on **Kaggle** with 11,000+ TCGA samples:
+
+```bash
+# Upload kaggle_notebook.ipynb to Kaggle
+# Or use any TCGA dataset directly:
+!pip install git+https://github.com/mytechnotalent/fusion_oncology.git
+!fusion-oncology run --top-k 10 --output-dir /kaggle/working/results
+```
+
+**See**: [KAGGLE_GUIDE.md](KAGGLE_GUIDE.md) for dataset recommendations and examples
+
 ---
 
 ## Project Structure
