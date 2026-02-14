@@ -1,0 +1,85 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fusion-oncology"
+version = "0.1.0"
+description = "Multi-modal cancer genomics analysis fusing XGBoost feature importance with DNABERT sequence embeddings"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "Fusion Oncology Contributors" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "biopython>=1.83",
+    "matplotlib>=3.8",
+    "numpy>=2.4.2",
+    "pandas>=2.1",
+    "requests>=2.31",
+    "scikit-learn>=1.4",
+    "scipy>=1.12",
+    "seaborn>=0.13",
+    "torch>=2.1",
+    "transformers>=5.1.0",
+    "xgboost>=3.2.0",
+    "click>=8.1",
+    "rich>=14.3.2",
+    "lifelines>=0.28",
+    "pyarrow>=14.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.2",
+    "mypy>=1.8",
+    "pre-commit>=4.5.1",
+    "black>=26.1.0",
+]
+
+[project.scripts]
+fusion-oncology = "fusion_oncology.cli:main"
+
+[project.urls]
+Repository = "https://github.com/fusion-oncology/fusion-oncology"
+Documentation = "https://github.com/fusion-oncology/fusion-oncology/tree/main/docs"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "ANN"]
+ignore = ["ANN401"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests that download data or run models (deselect with '-m \"not slow\"')",
+    "integration: marks integration tests requiring network access",
+]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.coverage.run]
+source = ["src/fusion_oncology"]
+omit = ["tests/*"]
