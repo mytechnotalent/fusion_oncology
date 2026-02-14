@@ -24,25 +24,38 @@ from fusion_oncology.cli import main
 
 ## Compatible Kaggle Datasets
 
-### 🔥 Recommended
+### � How to Find TCGA Datasets on Kaggle
 
-1. **TCGA Pan-Cancer Atlas** (Most Comprehensive)
+**Search on Kaggle**: Go to [kaggle.com/datasets](https://www.kaggle.com/datasets) and search for:
+- `"TCGA gene expression"`
+- `"TCGA RNA-seq"`
+- `"cancer genome atlas"`
+- `"pan-cancer"`
+
+Look for datasets with:
+- ✅ Gene expression matrices (samples × genes)
+- ✅ Cancer type labels
+- ✅ 500+ samples for robust analysis
+- ✅ CSV/TSV format
+
+### 🔥 Recommended Dataset Types
+
+1. **TCGA Pan-Cancer** (Largest - search "TCGA pan-cancer")
+   - Look for datasets with 10,000+ samples across multiple cancer types
+   - Best for comprehensive multi-cancer analysis
+   - Example structure:
    ```python
-   # Dataset: saurabhshahane/tcga-pan-cancer-atlas
-   # 11,000+ samples, 33 cancer types, multi-omics
-   
+   # After adding dataset to your Kaggle notebook
    import pandas as pd
-   # Modify ingestion to load from Kaggle path
-   X = pd.read_csv('/kaggle/input/tcga-pan-cancer-atlas/data.csv', index_col=0)
-   y = pd.read_csv('/kaggle/input/tcga-pan-cancer-atlas/labels.csv').squeeze()
+   X = pd.read_csv('/kaggle/input/[dataset-name]/[expression-file].csv', index_col=0)
+   y = pd.read_csv('/kaggle/input/[dataset-name]/[labels-file].csv').squeeze()
    ```
 
-2. **Gene Expression Cancer RNA-Seq** (Default Compatible)
+2. **Gene Expression Cancer RNA-Seq** (Default Compatible - search "gene expression cancer RNA")
+   - 801 samples, 5 cancer types (BRCA, KIRC, COAD, LUAD, PRAD)
+   - Works directly with built-in ingestion
+   - This is the UCI ML Repository dataset already integrated
    ```python
-   # Dataset: danielfrex/gene-expression-rna-seq
-   # 801 samples, 5 cancer types (BRCA, KIRC, COAD, LUAD, PRAD)
-   # Works directly with built-in ingestion!
-   
    from fusion_oncology.data.ingestion import DataIngestion
    from fusion_oncology.config import ProjectConfig
    
@@ -51,10 +64,29 @@ from fusion_oncology.cli import main
    X, y = ingestor.get_patient_data()
    ```
 
-3. **TCGA Cancer-Specific Datasets**
-   - Breast Cancer: `raghadalharbi/breast-cancer-gene-expression-profiles`
-   - Lung Cancer: `usmanafzali/the-cancer-genome-atlas`
-   - Colorectal: `kaggle search tcga colorectal`
+3. **Cancer-Specific TCGA** (search "TCGA breast", "TCGA lung", etc.)
+   - Single cancer type deep dives
+   - Usually 500-2000 samples per cancer type
+   - Good for focused analysis
+
+### 🌐 Alternative: Use Official TCGA Data Sources
+
+If you can't find suitable datasets on Kaggle, download from these verified sources and upload to Kaggle:
+
+1. **UCSC Xena Browser** - https://xenabrowser.net/datapages/
+   - TCGA Pan-Cancer (PANCAN) cohort
+   - Pre-normalized gene expression matrices
+   - Download → Upload to Kaggle Datasets
+
+2. **GDC Data Portal** - https://portal.gdc.cancer.gov/
+   - Official NCI Genomic Data Commons
+   - RNA-Seq expression data
+   - Requires some preprocessing
+
+3. **UCI ML Repository** (Already Integrated)
+   - https://archive.ics.uci.edu/dataset/401/gene+expression+cancer+rna+seq
+   - 801 samples, works out-of-the-box with Fusion Oncology
+   - No upload needed - use built-in ingestion
 
 ### 📊 Data Format Requirements
 
