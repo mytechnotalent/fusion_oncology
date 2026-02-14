@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
+import sys
 
 import numpy as np
 import torch
@@ -101,22 +102,31 @@ class DNABERTEngine:
         if self._model is None:
             logger.info("Loading DNABERT-2 on %s …", self.device)
             config = AutoConfig.from_pretrained(self.cfg.model_path, trust_remote_code=True)
-            # DNABERT-2 bundles an outdated Triton flash-attention kernel
-            # incompatible with Triton >= 3.0 (removed trans_b kwarg from
-            # tl.dot).  Disable at config level AND on every submodule so
-            # the model falls back to standard PyTorch attention.
-            config.use_flash_attn = False
             self._model = AutoModel.from_pretrained(
                 self.cfg.model_path,
                 config=config,
                 trust_remote_code=True,
             ).to(self.device)
-            # Force-disable flash attention on every submodule (belt-and-
-            # suspenders: the config flag alone is not always respected by
-            # DNABERT-2's custom bert_layers.py).
-            for module in self._model.modules():
-                if hasattr(module, "use_flash_attn"):
-                    module.use_flash_attn = False
+            # DNABERT-2 bundles a Triton flash-attention kernel that is
+            # incompatible with Triton >= 3.0 (removed ``trans_b`` kwarg
+            # from ``tl.dot``).  The attention branch in
+            # ``BertUnpadSelfAttention.forward()`` is:
+            #
+            #     if self.p_dropout or flash_attn_qkvpacked_func is None:
+            #         <standard PyTorch attention>   <-- we want this
+            #     else:
+            #         <broken Triton flash attention>
+            #
+            # Monkey-patch ``flash_attn_qkvpacked_func`` to ``None`` in
+            # the dynamically-loaded ``bert_layers`` module so the model
+            # always falls back to standard PyTorch attention.
+            for mod_name, mod in sys.modules.items():
+                if "bert_layers" in mod_name and hasattr(mod, "flash_attn_qkvpacked_func"):
+                    mod.flash_attn_qkvpacked_func = None
+                    logger.info(
+                        "Patched %s: flash_attn disabled (Triton compat)",
+                        mod_name,
+                    )
             self._model.eval()
         return self._model
 
