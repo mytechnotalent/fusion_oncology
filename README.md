@@ -19,27 +19,27 @@ Fusion Oncology combines two complementary signals to rank cancer gene targets:
 | **Dynamic** | XGBoost on TCGA Pan-Cancer RNA-Seq     | Which genes best discriminate cancer types    |
 | **Static**  | DNABERT-2 embedding + mutation fuzzing | How structurally fragile a gene's sequence is |
 
-The **Fusion Index** (importance × instability × 1000) highlights genes that are both biologically important *and* structurally vulnerable — promising candidates for therapeutic intervention.
+The **Fusion Index** (importance x instability x 1000) highlights genes that are both biologically important *and* structurally vulnerable -- promising candidates for therapeutic intervention.
 
 ### Core Analysis Layers
 
-- **Pathway enrichment** — maps targets to PI3K-Akt, MAPK, p53, Wnt, Notch, cell-cycle, DNA-repair, apoptosis, angiogenesis, and immune-checkpoint pathways
-- **Drug-target mapping** — cross-references 20+ gene targets against approved oncology drugs (EGFR→Osimertinib, BRAF→Vemurafenib, KRAS→Sotorasib, etc.)
-- **Survival analysis** — Kaplan–Meier + log-rank stratification hooks (requires clinical columns)
-- **Publication-quality figures** — bar charts, scatter plots, heatmaps, box plots
-- **Self-contained HTML report** — one-click shareable with collaborators
+- **Pathway enrichment** -- maps targets to PI3K-Akt, MAPK, p53, Wnt, Notch, cell-cycle, DNA-repair, apoptosis, angiogenesis, and immune-checkpoint pathways
+- **Drug-target mapping** -- cross-references 20+ gene targets against approved oncology drugs (EGFROsimertinib, BRAFVemurafenib, KRASSotorasib, etc.)
+- **Survival analysis** -- Kaplan-Meier + log-rank stratification hooks (requires clinical columns)
+- **Publication-quality figures** -- bar charts, scatter plots, heatmaps, box plots
+- **Self-contained HTML report** -- one-click shareable with collaborators
 
 ### Advanced Therapeutic Intelligence
 
-- **Multi-omics integration** — MAF mutation parsing, copy-number alteration analysis, methylation profiling, and combined feature matrix construction
-- **Clinical evidence aggregation** — real-time queries to OpenTargets, CIViC, and ClinicalTrials.gov APIs with composite evidence scoring
-- **Synthetic lethality detection** — curated database of 24 SL pairs (BRCA1/2–PARP, RB1–Aurora kinase, etc.) plus expression-based anti-correlation screening
-- **Neoantigen prediction** — codon translation, mutant peptide generation, simplified MHC-I binding scoring for immunotherapy candidate ranking
-- **Resistance prediction** — 12-gene resistance mechanism database with risk scoring, drug-specific evasion strategies, and clinical counter-measures
-- **Network pharmacology** — drug→gene→pathway tripartite interaction graph with degree/betweenness centrality, polypharmacology scoring, and combination target identification
-- **CRISPR guide design** — PAM scanning on both strands, Doench-inspired on-target scoring, off-target heuristics, and exportable guide libraries
-- **Companion diagnostics** — patient-level mutation profiling, AMP/ASCO/CAP actionability tiering (Tiers I–IV), drug matching, and ranked treatment plans
-- **Digital twin simulation** — Gompertzian tumour growth ODE model with drug regimens (cycling/scheduling), immune dynamics, RECIST response classification, and regimen comparison
+- **Multi-omics integration** -- MAF mutation parsing, copy-number alteration analysis, methylation profiling, and combined feature matrix construction
+- **Clinical evidence aggregation** -- real-time queries to OpenTargets, CIViC, and ClinicalTrials.gov APIs with composite evidence scoring
+- **Synthetic lethality detection** -- curated database of 24 SL pairs (BRCA1/2-PARP, RB1-Aurora kinase, etc.) plus expression-based anti-correlation screening
+- **Neoantigen prediction** -- codon translation, mutant peptide generation, simplified MHC-I binding scoring for immunotherapy candidate ranking
+- **Resistance prediction** -- 12-gene resistance mechanism database with risk scoring, drug-specific evasion strategies, and clinical counter-measures
+- **Network pharmacology** -- druggenepathway tripartite interaction graph with degree/betweenness centrality, polypharmacology scoring, and combination target identification
+- **CRISPR guide design** -- PAM scanning on both strands, Doench-inspired on-target scoring, off-target heuristics, and exportable guide libraries
+- **Companion diagnostics** -- patient-level mutation profiling, AMP/ASCO/CAP actionability tiering (Tiers I-IV), drug matching, and ranked treatment plans
+- **Digital twin simulation** -- Gompertzian tumour growth ODE model with drug regimens (cycling/scheduling), immune dynamics, RECIST response classification, and regimen comparison
 
 ---
 
@@ -76,7 +76,7 @@ fusion-oncology companion-dx --mutations "EGFR:T790M,BRAF:V600E" --cancer-type N
 fusion-oncology report results/fusion_results.csv
 ```
 
-### 📊 Kaggle Integration
+###  Kaggle Integration
 
 Run on **Kaggle** with the **GDSC dataset** (1,000+ cancer cell lines):
 
@@ -96,64 +96,64 @@ Run on **Kaggle** with the **GDSC dataset** (1,000+ cancer cell lines):
 
 ```
 fusion_oncology/
-├── pyproject.toml                  # Package metadata & dependencies
-├── Makefile                        # Dev shortcuts (make test, make lint, …)
-├── install.sh                      # One-step venv + editable install
-├── .github/workflows/ci.yml        # GitHub Actions CI
-├── docs/
-│   └── architecture.md             # System design & data-flow diagrams
-├── src/fusion_oncology/
-│   ├── __init__.py
-│   ├── config.py                   # Central dataclass configuration (29 fields)
-│   ├── cli.py                      # Click CLI (run, ingest, report, evidence, resistance, simulate, companion-dx, clear-cache)
-│   ├── data/
-│   │   ├── ingestion.py            # TCGA download + ZIP extraction + caching
-│   │   ├── preprocessing.py        # Variance filter, log-norm, PCA
-│   │   ├── cache.py                # File-system artefact cache
-│   │   └── multi_omics.py          # MAF mutations, CNA, methylation, feature integration
-│   ├── models/
-│   │   ├── xgboost_engine.py       # XGBoost training & feature importance
-│   │   ├── dnabert_engine.py       # DNABERT-2 sequence embedding
-│   │   ├── fusion.py               # 7-step orchestrator combining all models
-│   │   ├── crispr.py               # CRISPR guide design, on/off-target scoring
-│   │   ├── companion_dx.py         # Companion diagnostics & treatment planning
-│   │   └── digital_twin.py         # Gompertzian tumour growth simulation
-│   ├── analysis/
-│   │   ├── instability.py          # Mutation fuzzing + cosine drift
-│   │   ├── pathway.py              # KEGG/Reactome pathway lookup
-│   │   ├── drug_target.py          # Drug–target annotation
-│   │   ├── survival.py             # Kaplan–Meier survival hooks
-│   │   ├── clinical_evidence.py    # OpenTargets + CIViC + ClinicalTrials.gov
-│   │   ├── synthetic_lethality.py  # SL pair detection + expression screening
-│   │   ├── neoantigen.py           # Peptide generation + MHC binding scoring
-│   │   ├── resistance.py           # Resistance mechanism prediction
-│   │   └── network_pharmacology.py # Drug-gene-pathway interaction network
-│   ├── viz/
-│   │   ├── plots.py                # Matplotlib/Seaborn figure functions
-│   │   └── report.py               # HTML report generator
-│   └── utils/
-│       ├── bio.py                  # Entrez fetch, GC content, CpG islands
-│       └── log.py                  # Logging setup
-└── tests/
-    ├── conftest.py                 # Shared fixtures
-    ├── test_config.py
-    ├── test_preprocessing.py
-    ├── test_xgboost_engine.py
-    ├── test_cache.py
-    ├── test_pathway.py
-    ├── test_drug_target.py
-    ├── test_bio.py
-    ├── test_plots.py
-    ├── test_report.py
-    ├── test_multi_omics.py
-    ├── test_clinical_evidence.py
-    ├── test_synthetic_lethality.py
-    ├── test_neoantigen.py
-    ├── test_resistance.py
-    ├── test_network_pharmacology.py
-    ├── test_crispr.py
-    ├── test_companion_dx.py
-    └── test_digital_twin.py
+ pyproject.toml                  # Package metadata & dependencies
+ Makefile                        # Dev shortcuts (make test, make lint, ...)
+ install.sh                      # One-step venv + editable install
+ .github/workflows/ci.yml        # GitHub Actions CI
+ docs/
+    architecture.md             # System design & data-flow diagrams
+ src/fusion_oncology/
+    __init__.py
+    config.py                   # Central dataclass configuration (29 fields)
+    cli.py                      # Click CLI (run, ingest, report, evidence, resistance, simulate, companion-dx, clear-cache)
+    data/
+       ingestion.py            # TCGA download + ZIP extraction + caching
+       preprocessing.py        # Variance filter, log-norm, PCA
+       cache.py                # File-system artefact cache
+       multi_omics.py          # MAF mutations, CNA, methylation, feature integration
+    models/
+       xgboost_engine.py       # XGBoost training & feature importance
+       dnabert_engine.py       # DNABERT-2 sequence embedding
+       fusion.py               # 7-step orchestrator combining all models
+       crispr.py               # CRISPR guide design, on/off-target scoring
+       companion_dx.py         # Companion diagnostics & treatment planning
+       digital_twin.py         # Gompertzian tumour growth simulation
+    analysis/
+       instability.py          # Mutation fuzzing + cosine drift
+       pathway.py              # KEGG/Reactome pathway lookup
+       drug_target.py          # Drug-target annotation
+       survival.py             # Kaplan-Meier survival hooks
+       clinical_evidence.py    # OpenTargets + CIViC + ClinicalTrials.gov
+       synthetic_lethality.py  # SL pair detection + expression screening
+       neoantigen.py           # Peptide generation + MHC binding scoring
+       resistance.py           # Resistance mechanism prediction
+       network_pharmacology.py # Drug-gene-pathway interaction network
+    viz/
+       plots.py                # Matplotlib/Seaborn figure functions
+       report.py               # HTML report generator
+    utils/
+        bio.py                  # Entrez fetch, GC content, CpG islands
+        log.py                  # Logging setup
+ tests/
+     conftest.py                 # Shared fixtures
+     test_config.py
+     test_preprocessing.py
+     test_xgboost_engine.py
+     test_cache.py
+     test_pathway.py
+     test_drug_target.py
+     test_bio.py
+     test_plots.py
+     test_report.py
+     test_multi_omics.py
+     test_clinical_evidence.py
+     test_synthetic_lethality.py
+     test_neoantigen.py
+     test_resistance.py
+     test_network_pharmacology.py
+     test_crispr.py
+     test_companion_dx.py
+     test_digital_twin.py
 ```
 
 ---
@@ -208,8 +208,8 @@ Composite Evidence Scores:
 ```
 
 **Options:**
-- `GENES...` — One or more gene symbols (space-separated)
-- `--log-level` — Set logging verbosity (DEBUG, INFO, WARNING, ERROR)
+- `GENES...` -- One or more gene symbols (space-separated)
+- `--log-level` -- Set logging verbosity (DEBUG, INFO, WARNING, ERROR)
 
 ---
 
@@ -259,7 +259,7 @@ Mechanisms:
 ```
 
 **Options:**
-- `GENES...` — One or more gene symbols (space-separated)
+- `GENES...` -- One or more gene symbols (space-separated)
 
 ---
 
@@ -276,17 +276,17 @@ $ fusion-oncology simulate --drug Osimertinib --efficacy 0.15 --days 90
 Digital Twin Tumour Simulation
 
 Configuration:
-  Initial Volume: 10000.0 mm³
+  Initial Volume: 10000.0 mm3
   Initial CTCs: 100 cells/mL
   Simulation Duration: 90 days
   Drug: Osimertinib
-  Efficacy: 0.15 day⁻¹
+  Efficacy: 0.15 day
   Days On/Off: 0/0 (continuous)
 
 Running ODE integration...
 
 Final Results (Day 90):
-  Tumour Volume: < 0.001 mm³
+  Tumour Volume: < 0.001 mm3
   Reduction: 100.0%
   CTCs: < 0.001 cells/mL
   RECIST Response: CR (Complete Response)
@@ -295,15 +295,15 @@ Trajectory saved to: digital_twin_trajectory.csv
 ```
 
 **Options:**
-- `--days INT` — Simulation duration (default: 365)
-- `--drug TEXT` — Drug name (default: Generic)
-- `--efficacy FLOAT` — Drug efficacy rate (default: 0.1)
-- `--days-on INT` — Days drug is active in cycle (default: 0, continuous)
-- `--days-off INT` — Days drug is off in cycle (default: 0)
-- `--initial-volume FLOAT` — Initial tumour volume in mm³ (default: 10000.0)
-- `--growth-rate FLOAT` — Gompertzian growth rate (default: 0.01)
-- `--carrying-capacity FLOAT` — Maximum tumour volume (default: 100000.0)
-- `--output PATH` — Output CSV file path
+- `--days INT` -- Simulation duration (default: 365)
+- `--drug TEXT` -- Drug name (default: Generic)
+- `--efficacy FLOAT` -- Drug efficacy rate (default: 0.1)
+- `--days-on INT` -- Days drug is active in cycle (default: 0, continuous)
+- `--days-off INT` -- Days drug is off in cycle (default: 0)
+- `--initial-volume FLOAT` -- Initial tumour volume in mm3 (default: 10000.0)
+- `--growth-rate FLOAT` -- Gompertzian growth rate (default: 0.01)
+- `--carrying-capacity FLOAT` -- Maximum tumour volume (default: 100000.0)
+- `--output PATH` -- Output CSV file path
 
 ---
 
@@ -337,101 +337,101 @@ Cancer Type: Non-Small Cell Lung Cancer
 Analysis Date: 2026-02-14
 
 Detected Mutations:
-  • EGFR L858R (VAF: 42.0%) - Tier I: Strong clinical significance
-  • TP53 R273H (VAF: 38.0%) - Tier III: Potential clinical significance
-  • KRAS G12C (VAF: 15.0%) - Tier I: Strong clinical significance
+   EGFR L858R (VAF: 42.0%) - Tier I: Strong clinical significance
+   TP53 R273H (VAF: 38.0%) - Tier III: Potential clinical significance
+   KRAS G12C (VAF: 15.0%) - Tier I: Strong clinical significance
 
 Treatment Recommendations (Ranked by Confidence):
 
-1. Osimertinib (EGFR L858R) — 90% confidence
+1. Osimertinib (EGFR L858R) -- 90% confidence
    AMP/ASCO/CAP Tier: I
    Evidence: FDA-approved for EGFR-mutant NSCLC, first-line standard
    Rationale: Strong clinical benefit in L858R-positive patients
 
-2. Sotorasib (KRAS G12C) — 78% confidence
+2. Sotorasib (KRAS G12C) -- 78% confidence
    AMP/ASCO/CAP Tier: I
    Evidence: FDA-approved for KRAS G12C NSCLC
    Rationale: Selective KRAS G12C inhibitor, response rate ~37%
 
-3. Afatinib (EGFR L858R) — 72% confidence
+3. Afatinib (EGFR L858R) -- 72% confidence
    AMP/ASCO/CAP Tier: I
    Evidence: 2nd-gen EGFR TKI, proven efficacy in L858R
    Rationale: Alternative to osimertinib, pan-HER inhibitor
 
-4. Erlotinib (EGFR L858R) — 65% confidence
+4. Erlotinib (EGFR L858R) -- 65% confidence
    AMP/ASCO/CAP Tier: I
    Evidence: 1st-gen EGFR TKI, established NSCLC therapy
    Rationale: Historical standard, now 2nd/3rd line
 
-5. Adagrasib (KRAS G12C) — 62% confidence
+5. Adagrasib (KRAS G12C) -- 62% confidence
    AMP/ASCO/CAP Tier: I
    Evidence: FDA-approved KRAS G12C inhibitor
    Rationale: Alternative to sotorasib, CNS penetration
 
-6. Gefitinib (EGFR L858R) — 58% confidence
+6. Gefitinib (EGFR L858R) -- 58% confidence
    AMP/ASCO/CAP Tier: I
    Evidence: 1st-gen EGFR TKI
    Rationale: Similar to erlotinib, regional variation
 
-7. Carboplatin/Pemetrexed (TP53 R273H) — 35% confidence
+7. Carboplatin/Pemetrexed (TP53 R273H) -- 35% confidence
    AMP/ASCO/CAP Tier: III
    Evidence: Chemotherapy backbone for NSCLC
    Rationale: Standard option for targetable cases
 
-8. Pembrolizumab (TP53 R273H) — 27% confidence
+8. Pembrolizumab (TP53 R273H) -- 27% confidence
    AMP/ASCO/CAP Tier: III
    Evidence: Immune checkpoint inhibitor
    Rationale: Consider if PD-L1 high, TP53 may predict response
 
 Resistance Risk Alerts:
 
-  ⚠️  EGFR T790M Gatekeeper Mutation (HIGH risk)
+    EGFR T790M Gatekeeper Mutation (HIGH risk)
       Monitor for acquired resistance during osimertinib therapy
       Strategy: Re-biopsy at progression, consider 4th-gen EGFR TKI
 
-  ⚠️  MET Amplification (MEDIUM risk)
+    MET Amplification (MEDIUM risk)
       Bypass pathway activation in EGFR-mutant cases
       Strategy: Combination EGFR-MET inhibition if MET amplified
 
-  ⚠️  HER2 Amplification (MEDIUM risk)
+    HER2 Amplification (MEDIUM risk)
       Emerging resistance mechanism in 5-12% of EGFR TKI-treated
       Strategy: HER2-directed therapy or dual blockade
 
-  ⚠️  BRAF V600E Mutation (LOW risk)
+    BRAF V600E Mutation (LOW risk)
       Rare transformation mechanism
       Strategy: BRAF inhibitor addition if detected
 
-  ⚠️  STK11 Loss (MEDIUM risk)
+    STK11 Loss (MEDIUM risk)
       May confer immune checkpoint inhibitor resistance
       Strategy: Avoid ICI monotherapy, prefer targeted agents
 
-  ⚠️  KEAP1 Mutation (MEDIUM risk)
+    KEAP1 Mutation (MEDIUM risk)
       Associated with poor ICI response
       Strategy: Targeted therapy preferred over immunotherapy
 
-  ⚠️  PTEN Loss (LOW risk)
+    PTEN Loss (LOW risk)
       May reduce TKI sensitivity
       Strategy: Monitor closely, consider PI3K pathway inhibition
 
-  ⚠️  PIK3CA Activation (LOW risk)
+    PIK3CA Activation (LOW risk)
       Bypass signaling mechanism
       Strategy: Dual EGFR-PI3K inhibition investigational
 
 Synthetic Lethality Opportunities:
 
-  🎯  PARP1 inhibition (if DDR pathway defects emerge)
+    PARP1 inhibition (if DDR pathway defects emerge)
       Associated genes: BRCA1, BRCA2
       Drugs: Olaparib, rucaparib, niraparib
 
-  🎯  CHK1 inhibition (TP53 R273H synthetic lethal)
+    CHK1 inhibition (TP53 R273H synthetic lethal)
       Associated genes: TP53
       Drugs: Prexasertib, rabusertib (investigational)
 
-  🎯  WEE1 inhibition (TP53 R273H synthetic lethal)
+    WEE1 inhibition (TP53 R273H synthetic lethal)
       Associated genes: TP53
       Drugs: Adavosertib (investigational)
 
-  🎯  ATM inhibition (if ATR pathway intact)
+    ATM inhibition (if ATR pathway intact)
       Associated genes: ATM
       Drugs: AZD0156, AZD1390 (investigational)
 
@@ -444,8 +444,8 @@ Clinical Summary:
 ```
 
 **Options:**
-- `MUTATIONS_FILE` — JSON file with patient mutations (required)
-- `--log-level` — Set logging verbosity
+- `MUTATIONS_FILE` -- JSON file with patient mutations (required)
+- `--log-level` -- Set logging verbosity
 
 ---
 
@@ -493,16 +493,16 @@ Step 4/7: Pathway enrichment analysis...
   PTEN: PI3K-Akt, mTOR signaling
 
 Step 5/7: Drug-target annotation...
-  EGFR → Osimertinib, Gefitinib, Erlotinib, Afatinib
-  KRAS → Sotorasib, Adagrasib
-  PTEN → (PI3K inhibitors indirect)
+  EGFR  Osimertinib, Gefitinib, Erlotinib, Afatinib
+  KRAS  Sotorasib, Adagrasib
+  PTEN  (PI3K inhibitors indirect)
 
 Step 6/7: Resistance prediction...
   EGFR: 4 mechanisms identified
   KRAS: 2 mechanisms identified
 
 Step 7/7: Network pharmacology analysis...
-  5 genes → 12 drugs → 8 pathways
+  5 genes  12 drugs  8 pathways
   Polypharmacology score: 3.2
   Top combination targets: EGFR + KRAS
 
@@ -519,14 +519,14 @@ Figures saved to: results/figures/
 ```
 
 **Options:**
-- `--top-k INT` — Number of top genes to analyze (default: 5)
-- `--fuzz-iterations INT` — Mutation iterations per gene (default: 20)
-- `--xgb-trees INT` — XGBoost estimators (default: 50)
-- `--xgb-depth INT` — XGBoost max depth (default: 4)
-- `--output-dir PATH` — Output directory (default: results/)
-- `--log-level TEXT` — Logging level (DEBUG, INFO, WARNING, ERROR)
-- `--skip-plots` — Skip figure generation
-- `--skip-report` — Skip HTML report generation
+- `--top-k INT` -- Number of top genes to analyze (default: 5)
+- `--fuzz-iterations INT` -- Mutation iterations per gene (default: 20)
+- `--xgb-trees INT` -- XGBoost estimators (default: 50)
+- `--xgb-depth INT` -- XGBoost max depth (default: 4)
+- `--output-dir PATH` -- Output directory (default: results/)
+- `--log-level TEXT` -- Logging level (DEBUG, INFO, WARNING, ERROR)
+- `--skip-plots` -- Skip figure generation
+- `--skip-report` -- Skip HTML report generation
 
 ---
 
@@ -545,7 +545,7 @@ Source: UCI ML Repository
 Size: ~69 MB
 
 Download complete: ~/.cache/fusion_oncology/
-Extracted: 801 samples × 20,531 genes
+Extracted: 801 samples x 20,531 genes
 Cache ready for analysis
 ```
 
@@ -589,42 +589,42 @@ Cache cleared successfully
 
 ```
                   TCGA Pan-Cancer RNA-Seq
-                          │
-              ┌───────────┴───────────┐
-              ▼                       ▼
+                          
+              
+                                     
   Step 1: XGBoost Classifier    Step 2: NCBI Entrez
         (multi-class cancer)    (RefSeq DNA fetch)
-              │                       │
-              ▼                       ▼
+                                     
+                                     
         Feature Importance      DNABERT-2 Embedding
         (gain score)            (768-dim vector)
-              │                       │
-              │              Step 3: N random SNP mutations
-              │                  re-embed each mutant
-              │                  cosine distance to ref
-              │                       │
-              ▼                       ▼
+                                     
+                            Step 3: N random SNP mutations
+                                re-embed each mutant
+                                cosine distance to ref
+                                     
+                                     
          importance              instability
-              │                       │
-              └───────── × ───────────┘
-                         │
-                         ▼
+                                     
+               x 
+                         
+                         
                    Fusion Index
-                  (× 1000 scaling)
-                         │
-              ┌──────────┼──────────┐
-              ▼          ▼          ▼
+                  (x 1000 scaling)
+                         
+              
+                                  
      Step 4: Pathway  Step 5:    Step 6:
      Enrichment       Drug-Target Resistance
                       Annotation  Prediction
-                         │
-                         ▼
+                         
+                         
               Step 7: Network Pharmacology
               + Synthetic Lethality Screening
-                         │
-                         ▼
-              ┌──────────┼──────────┐
-              ▼          ▼          ▼
+                         
+                         
+              
+                                  
          CRISPR       Companion  Digital Twin
          Guide        Diagnostics Simulation
          Design       (AMP/ASCO/  (Gompertz ODE)
@@ -668,7 +668,7 @@ make test-cov
 | `pandas` + `numpy`       | Data manipulation                                  |
 | `scipy`                  | Statistical tests (Spearman, log-rank)             |
 | `matplotlib` + `seaborn` | Visualization                                      |
-| `lifelines`              | Kaplan–Meier survival analysis                     |
+| `lifelines`              | Kaplan-Meier survival analysis                     |
 | `requests`               | API queries (OpenTargets, CIViC, ClinicalTrials)   |
 | `pyarrow`                | Parquet file I/O for artefact caching              |
 | `click` + `rich`         | CLI interface                                      |
@@ -680,7 +680,7 @@ make test-cov
 **TCGA Pan-Cancer (PANCAN) HiSeq RNA-Seq** from the UCI Machine Learning Repository:  
 https://archive.ics.uci.edu/dataset/401/gene+expression+cancer+rna+seq
 
-- 801 samples × 20,531 genes
+- 801 samples x 20,531 genes
 - 5 cancer types: BRCA, KIRC, COAD, LUAD, PRAD
 
 ---

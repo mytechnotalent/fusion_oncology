@@ -189,9 +189,7 @@ class SyntheticLethalityDetector:
         df = pd.DataFrame(results)
         if not df.empty:
             df = df.sort_values("Correlation").reset_index(drop=True)
-        logger.info(
-            "SL screen: %d candidate pairs (threshold=%.2f)", len(df), threshold
-        )
+        logger.info("SL screen: %d candidate pairs (threshold=%.2f)", len(df), threshold)
         return df
 
     def _screen_one_target(
@@ -264,9 +262,7 @@ class SyntheticLethalityDetector:
         """
         results: list[dict[str, Any]] = []
         for gene_a in (g for g in target_genes if g in X.columns):
-            results.extend(
-                self._screen_one_target(X, gene_a, target_genes, method, threshold)
-            )
+            results.extend(self._screen_one_target(X, gene_a, target_genes, method, threshold))
         return self._finalize_sl_screen(results, threshold)
 
     def _annotate_sl_gene(self, gene: str) -> tuple[str, int]:

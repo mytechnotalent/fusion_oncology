@@ -221,24 +221,16 @@ def _print_summary(results, engine) -> None:
 
 
 @main.command()
-@click.option(
-    "--top-k", default=5, show_default=True, help="Number of top genes to analyse."
-)
+@click.option("--top-k", default=5, show_default=True, help="Number of top genes to analyse.")
 @click.option(
     "--fuzz-iterations",
     default=20,
     show_default=True,
     help="Mutation iterations per gene.",
 )
-@click.option(
-    "--xgb-trees", default=50, show_default=True, help="XGBoost number of estimators."
-)
-@click.option(
-    "--xgb-depth", default=4, show_default=True, help="XGBoost max tree depth."
-)
-@click.option(
-    "--output-dir", default="results", type=click.Path(), help="Where to write results."
-)
+@click.option("--xgb-trees", default=50, show_default=True, help="XGBoost number of estimators.")
+@click.option("--xgb-depth", default=4, show_default=True, help="XGBoost max tree depth.")
+@click.option("--output-dir", default="results", type=click.Path(), help="Where to write results.")
 @click.option(
     "--log-level",
     default="INFO",
@@ -281,9 +273,7 @@ def run(
     skip_report : bool
         When ``True``, skip HTML report assembly.
     """
-    cfg = _setup_run(
-        top_k, fuzz_iterations, xgb_trees, xgb_depth, output_dir, log_level
-    )
+    cfg = _setup_run(top_k, fuzz_iterations, xgb_trees, xgb_depth, output_dir, log_level)
     console.rule("[bold blue]FUSION ONCOLOGY SUITE[/bold blue]")
     X, y = _load_data(cfg)
     results, engine = _run_analysis(X, y, cfg)
@@ -486,9 +476,7 @@ def _build_evidence_table(gene: str, profile: dict) -> Table:
         min(len(trial_items) / 10, 1.0),
         f"{len(trial_items)} trials",
     )
-    _add_evidence_row(
-        table, "[bold]Composite[/bold]", profile.get("evidence_score", 0), ""
-    )
+    _add_evidence_row(table, "[bold]Composite[/bold]", profile.get("evidence_score", 0), "")
     return table
 
 
@@ -694,12 +682,8 @@ def _save_simulation(df, cfg: ProjectConfig) -> None:
 
 @main.command()
 @click.option("--drug", required=True, help="Drug name for simulation.")
-@click.option(
-    "--efficacy", default=0.15, show_default=True, help="Drug kill rate (day⁻¹)."
-)
-@click.option(
-    "--days", default=365, show_default=True, help="Simulation duration (days)."
-)
+@click.option("--efficacy", default=0.15, show_default=True, help="Drug kill rate (day⁻¹).")
+@click.option("--days", default=365, show_default=True, help="Simulation duration (days).")
 @click.option(
     "--resistance-rate",
     default=0.001,
@@ -732,9 +716,7 @@ def simulate(
     output_dir : str
         Directory for output CSV.
     """
-    df, summary, cfg = _run_simulation(
-        drug, efficacy, days, resistance_rate, output_dir
-    )
+    df, summary, cfg = _run_simulation(drug, efficacy, days, resistance_rate, output_dir)
     _print_simulation_summary(drug, days, summary)
     _save_simulation(df, cfg)
 
@@ -764,9 +746,7 @@ def _load_mutations(mutations_file: str, cancer_type: str, patient_id: str):
 
     with open(mutations_file) as f:
         mutations = json.load(f)
-    return PatientProfile(
-        patient_id=patient_id, mutations=mutations, cancer_type=cancer_type
-    )
+    return PatientProfile(patient_id=patient_id, mutations=mutations, cancer_type=cancer_type)
 
 
 def _run_companion_analysis(patient, cfg: ProjectConfig) -> tuple:
@@ -792,9 +772,7 @@ def _run_companion_analysis(patient, cfg: ProjectConfig) -> tuple:
     return results, report_text
 
 
-def _save_companion_report(
-    report_text: str, patient_id: str, cfg: ProjectConfig
-) -> None:
+def _save_companion_report(report_text: str, patient_id: str, cfg: ProjectConfig) -> None:
     """Save and print companion diagnostic report.
 
     Parameters
@@ -859,9 +837,7 @@ def _print_results_table(df: "pd.DataFrame") -> None:  # noqa: F821
     """
     table = Table(title="Fusion Oncology — Ranked Targets", show_lines=True)
     for col in df.columns:
-        table.add_column(
-            col, justify="right" if df[col].dtype in ("float64", "int64") else "left"
-        )
+        table.add_column(col, justify="right" if df[col].dtype in ("float64", "int64") else "left")
     for _, row in df.iterrows():
         table.add_row(*[str(v) for v in row])
     console.print(table)

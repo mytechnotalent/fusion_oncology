@@ -158,9 +158,7 @@ class TestDigitalTwin:
 
         # Treated
         twin_drug = DigitalTwin(sim_config=sim_cfg, project_config=cfg)
-        twin_drug.add_regimen(
-            DrugRegimen(name="TestDrug", efficacy=0.5, duration_days=30)
-        )
+        twin_drug.add_regimen(DrugRegimen(name="TestDrug", efficacy=0.5, duration_days=30))
         df_drug = twin_drug.simulate()
 
         # Treated tumour should be smaller at day 30

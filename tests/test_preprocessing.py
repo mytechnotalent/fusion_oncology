@@ -29,9 +29,7 @@ def _make_df(rows=50, cols=20, seed=0):
         Random float matrix with columns ``G0 … G{cols-1}``.
     """
     rng = np.random.default_rng(seed)
-    return pd.DataFrame(
-        rng.random((rows, cols)), columns=[f"G{i}" for i in range(cols)]
-    )
+    return pd.DataFrame(rng.random((rows, cols)), columns=[f"G{i}" for i in range(cols)])
 
 
 def test_variance_filter_removes_low_variance():

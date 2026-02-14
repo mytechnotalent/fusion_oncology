@@ -29,9 +29,7 @@ sns.set_theme(style="whitegrid", context="paper", font_scale=1.2)
 PALETTE = sns.color_palette("viridis", 10)
 
 
-def fusion_bar(
-    results: pd.DataFrame, config: ProjectConfig | None = None
-) -> plt.Figure:
+def fusion_bar(results: pd.DataFrame, config: ProjectConfig | None = None) -> plt.Figure:
     """Horizontal bar chart of Fusion Index scores.
 
     Parameters
@@ -349,9 +347,7 @@ def pca_scatter(
     return fig
 
 
-def save_figure(
-    fig: plt.Figure, name: str, config: ProjectConfig | None = None
-) -> Path:
+def save_figure(fig: plt.Figure, name: str, config: ProjectConfig | None = None) -> Path:
     """Persist a matplotlib figure to the output directory as PNG.
 
     Parameters

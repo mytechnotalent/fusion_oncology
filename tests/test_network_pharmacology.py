@@ -71,9 +71,7 @@ class TestInteractionNetwork:
         """
         assert len(network.edges) > 0
 
-    def test_degree_centrality_returns_dataframe(
-        self, network: InteractionNetwork
-    ) -> None:
+    def test_degree_centrality_returns_dataframe(self, network: InteractionNetwork) -> None:
         """Degree centrality should return a DataFrame with expected columns.
 
         Parameters
@@ -157,9 +155,7 @@ class TestInteractionNetwork:
             score = network.strategic_score(gene)
             assert 0.0 <= score <= 1.0
 
-    def test_strategic_score_known_gene_nonzero(
-        self, network: InteractionNetwork
-    ) -> None:
+    def test_strategic_score_known_gene_nonzero(self, network: InteractionNetwork) -> None:
         """A well-connected gene should have a nonzero strategic score.
 
         Parameters

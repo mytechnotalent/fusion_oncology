@@ -1,4 +1,4 @@
-# 🧬 Fusion Oncology on Kaggle
+#  Fusion Oncology on Kaggle
 
 Quick guide to running Fusion Oncology on Kaggle datasets.
 
@@ -26,19 +26,19 @@ Quick guide to running Fusion Oncology on Kaggle datasets.
 
 ## Compatible Kaggle Datasets
 
-### 🏆 RECOMMENDED: Genomics of Drug Sensitivity in Cancer (GDSC)
+###  RECOMMENDED: Genomics of Drug Sensitivity in Cancer (GDSC)
 
 **The BEST dataset for Fusion Oncology** - verified and tested!
 
 **Kaggle Link:** [kaggle.com/datasets/samiraalipour/genomics-of-drug-sensitivity-in-cancer-gdsc](https://www.kaggle.com/datasets/samiraalipour/genomics-of-drug-sensitivity-in-cancer-gdsc)
 
 **Why it's perfect:**
-- ✅ **1000+ cancer cell lines** across multiple cancer types
-- ✅ **Gene expression + mutations + copy number variations**
-- ✅ **Drug sensitivity data (IC50 values)** - validate your predictions!
-- ✅ **Perfect usability: 10.0/10** (4,617 downloads, 120 upvotes)
-- ✅ **4 clean files** ready for analysis
-- ✅ **Multi-omics** - showcases all Fusion Oncology features
+-  **1000+ cancer cell lines** across multiple cancer types
+-  **Gene expression + mutations + copy number variations**
+-  **Drug sensitivity data (IC50 values)** - validate your predictions!
+-  **Perfect usability: 10.0/10** (4,617 downloads, 120 upvotes)
+-  **4 clean files** ready for analysis
+-  **Multi-omics** - showcases all Fusion Oncology features
 
 **Quick start with GDSC:**
 ```python
@@ -60,8 +60,8 @@ y = df['TCGA_DESC'].dropna()  # Cancer tissue classification
 numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
 X = df.loc[y.index, numeric_cols]  # Feature matrix
 
-print(f"✓ Loaded {len(X)} samples x {X.shape[1]} features")
-print(f"✓ Cancer types: {y.nunique()}")
+print(f" Loaded {len(X)} samples x {X.shape[1]} features")
+print(f" Cancer types: {y.nunique()}")
 ```
 
 **What makes GDSC special:**
@@ -72,7 +72,7 @@ print(f"✓ Cancer types: {y.nunique()}")
 
 ---
 
-### 🔥 Other Dataset Options
+###  Other Dataset Options
 
 #### 1. **Built-in UCI Dataset** (Default - No Upload Needed)
 
@@ -94,7 +94,7 @@ X, y = ingestor.get_patient_data()
 - 705 breast cancer samples
 - Mutations, copy numbers, gene expression, protein levels
 - 2,894 downloads, 31 upvotes
-- ⚠️ Only breast cancer (single type)
+-  Only breast cancer (single type)
 
 #### 3. **Search Kaggle for More**
 Go to [kaggle.com/datasets](https://www.kaggle.com/datasets) and search:
@@ -104,19 +104,19 @@ Go to [kaggle.com/datasets](https://www.kaggle.com/datasets) and search:
 - `"pan-cancer"`
 
 Look for datasets with:
-- ✅ Gene expression matrices (samples × genes)
-- ✅ Cancer type labels
-- ✅ 500+ samples for robust analysis
-- ✅ CSV/TSV format
+-  Gene expression matrices (samples x genes)
+-  Cancer type labels
+-  500+ samples for robust analysis
+-  CSV/TSV format
 
-### 🌐 Alternative: Use Official TCGA Data Sources
+###  Alternative: Use Official TCGA Data Sources
 
 If you can't find suitable datasets on Kaggle, download from these verified sources and upload to Kaggle:
 
 1. **UCSC Xena Browser** - https://xenabrowser.net/datapages/
    - TCGA Pan-Cancer (PANCAN) cohort
    - Pre-normalized gene expression matrices
-   - Download → Upload to Kaggle Datasets
+   - Download  Upload to Kaggle Datasets
 
 2. **GDC Data Portal** - https://portal.gdc.cancer.gov/
    - Official NCI Genomic Data Commons
@@ -128,10 +128,10 @@ If you can't find suitable datasets on Kaggle, download from these verified sour
    - 801 samples, works out-of-the-box with Fusion Oncology
    - No upload needed - use built-in ingestion
 
-### 📊 Data Format Requirements
+###  Data Format Requirements
 
 Your data should have:
-- **Expression matrix** (samples × genes): CSV/TSV with genes as columns
+- **Expression matrix** (samples x genes): CSV/TSV with genes as columns
 - **Labels** (cancer types): Single column with cancer type per sample
 
 Example:
@@ -271,10 +271,10 @@ os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
 When you publish a Kaggle kernel using Fusion Oncology:
 
-1. ⭐ **Star the repo**: [github.com/mytechnotalent/fusion_oncology](https://github.com/mytechnotalent/fusion_oncology)
-2. 📝 **Cite the tool** in your kernel
-3. 🔗 **Tag** @mytechnotalent
-4. 📧 **Share your results** - we'd love to see them!
+1.  **Star the repo**: [github.com/mytechnotalent/fusion_oncology](https://github.com/mytechnotalent/fusion_oncology)
+2.  **Cite the tool** in your kernel
+3.  **Tag** @mytechnotalent
+4.  **Share your results** - we'd love to see them!
 
 ## Citation
 

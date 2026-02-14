@@ -73,9 +73,7 @@ def _fetch_fasta(ncbi_id: str) -> str:
     str
         Raw FASTA text.
     """
-    seq_handle = Entrez.efetch(
-        db="nucleotide", id=ncbi_id, rettype="fasta", retmode="text"
-    )
+    seq_handle = Entrez.efetch(db="nucleotide", id=ncbi_id, rettype="fasta", retmode="text")
     fasta = seq_handle.read()
     seq_handle.close()
     return fasta
@@ -190,9 +188,7 @@ def gc_content(seq: str) -> float:
     return gc / len(seq)
 
 
-def find_cpg_islands(
-    seq: str, window: int = 200, threshold: float = 0.6
-) -> list[tuple[int, int]]:
+def find_cpg_islands(seq: str, window: int = 200, threshold: float = 0.6) -> list[tuple[int, int]]:
     """
     Simple sliding-window CpG island detector.
 

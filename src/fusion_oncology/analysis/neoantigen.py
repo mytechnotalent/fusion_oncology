@@ -274,9 +274,7 @@ def _collect_peptides_for_length(
     """
     results: list[dict[str, str]] = []
     for start in _peptide_window_range(mutation_position, plen, len(wt_sequence)):
-        entry = _make_peptide_entry(
-            wt_sequence, mut_seq_str, start, plen, mutation_position
-        )
+        entry = _make_peptide_entry(wt_sequence, mut_seq_str, start, plen, mutation_position)
         if entry is not None:
             results.append(entry)
     return results
@@ -313,9 +311,7 @@ def generate_mutant_peptides(
     mut = _build_mutant_sequence(wt_sequence, mutation_position, mutant_aa)
     results: list[dict[str, str]] = []
     for plen in peptide_lengths:
-        results.extend(
-            _collect_peptides_for_length(wt_sequence, mut, mutation_position, plen)
-        )
+        results.extend(_collect_peptides_for_length(wt_sequence, mut, mutation_position, plen))
     return results
 
 

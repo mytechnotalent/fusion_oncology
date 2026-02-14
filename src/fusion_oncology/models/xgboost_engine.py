@@ -221,6 +221,6 @@ class XGBoostEngine:
         """
         if self.model is None:
             raise RuntimeError("Model not fitted yet – call .fit() first")
-        return pd.Series(
-            self.model.feature_importances_, index=self._feature_names
-        ).sort_values(ascending=False)
+        return pd.Series(self.model.feature_importances_, index=self._feature_names).sort_values(
+            ascending=False
+        )

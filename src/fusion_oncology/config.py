@@ -84,8 +84,7 @@ class ProjectConfig:
 
     # ── Data source ──────────────────────────────────────────────────────
     data_url: str = (
-        "https://archive.ics.uci.edu/static/public/401/"
-        "gene+expression+cancer+rna+seq.zip"
+        "https://archive.ics.uci.edu/static/public/401/" "gene+expression+cancer+rna+seq.zip"
     )
     cache_dir: Path = field(
         default_factory=lambda: Path(

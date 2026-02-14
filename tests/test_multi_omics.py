@@ -180,11 +180,7 @@ class TestLoadCna:
         """
         df = load_cna(str(sample_cna))
         assert isinstance(df, pd.DataFrame)
-        assert (
-            df.index.name == "Hugo_Symbol"
-            or "Hugo_Symbol" in df.columns
-            or "EGFR" in df.index
-        )
+        assert df.index.name == "Hugo_Symbol" or "Hugo_Symbol" in df.columns or "EGFR" in df.index
 
 
 class TestMultiOmicsIntegrator:

@@ -754,10 +754,7 @@ class DigitalTwin:
             Columns: ``regimen``, ``best_response_day``,
             ``best_response_pct``, ``final_tumour``, ``recist``.
         """
-        results = [
-            self._simulate_regimen_set(label, regs)
-            for label, regs in regimen_sets.items()
-        ]
+        results = [self._simulate_regimen_set(label, regs) for label, regs in regimen_sets.items()]
         return self._build_comparison_df(results)
 
     def _summary_dict(self) -> dict[str, Any]:

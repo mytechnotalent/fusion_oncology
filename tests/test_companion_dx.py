@@ -180,9 +180,7 @@ class TestCompanionDiagnostic:
             assert "tier" in mut
             assert mut["tier"] in {"I", "II", "III", "IV"}
 
-    def test_generate_report(
-        self, cfg: ProjectConfig, sample_patient: PatientProfile
-    ) -> None:
+    def test_generate_report(self, cfg: ProjectConfig, sample_patient: PatientProfile) -> None:
         """Generate report should produce a non-empty string.
 
         Parameters

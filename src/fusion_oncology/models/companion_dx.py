@@ -869,8 +869,7 @@ class CompanionDiagnostic:
         lines = ["", "─" * 72, "ACTIONABLE MUTATIONS", "─" * 72]
         for mut in results.get("actionable_mutations", []):
             lines.append(
-                f"  [{mut['tier']}] {mut['gene']} "
-                f"{mut.get('variant', '')} — {mut['rationale']}"
+                f"  [{mut['tier']}] {mut['gene']} " f"{mut.get('variant', '')} — {mut['rationale']}"
             )
         return lines
 

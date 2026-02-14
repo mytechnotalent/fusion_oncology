@@ -214,9 +214,7 @@ class InteractionNetwork:
             Each dict has keys ``Node``, ``Type``, ``Degree``, ``Centrality``.
         """
         n = len(self._node_types)
-        return [
-            self._degree_row(node, ntype, n) for node, ntype in self._node_types.items()
-        ]
+        return [self._degree_row(node, ntype, n) for node, ntype in self._node_types.items()]
 
     def degree_centrality(self) -> pd.DataFrame:
         """Compute degree centrality for all nodes.
@@ -417,11 +415,7 @@ class InteractionNetwork:
         list[str]
             Matching neighbour identifiers.
         """
-        return [
-            n
-            for n in self._adjacency.get(node, set())
-            if self._node_types.get(n) == node_type
-        ]
+        return [n for n in self._adjacency.get(node, set()) if self._node_types.get(n) == node_type]
 
     def _get_target_pathways(self, targets: list[str]) -> set[str]:
         """Collect all pathway neighbours of a list of gene targets.
@@ -639,9 +633,7 @@ class InteractionNetwork:
         """
         visited = self._bfs_within_distance(gene, max_distance)
         gene_pathways = set(self._get_neighbours_by_type(gene, "pathway"))
-        candidates = self._filter_druggable_candidates(
-            visited, gene, max_distance, gene_pathways
-        )
+        candidates = self._filter_druggable_candidates(visited, gene, max_distance, gene_pathways)
         return sorted(candidates, key=lambda x: x["distance"])
 
     def _compute_strategic_components(self, gene: str) -> tuple[float, float, float]:

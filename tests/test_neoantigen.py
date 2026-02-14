@@ -92,9 +92,7 @@ class TestGenerateMutantPeptides:
         -------
         None
         """
-        peptides = generate_mutant_peptides(
-            "ACDEFGHIK", mutation_position=3, mutant_aa="W"
-        )
+        peptides = generate_mutant_peptides("ACDEFGHIK", mutation_position=3, mutant_aa="W")
         assert isinstance(peptides, list)
         assert all(isinstance(p, dict) for p in peptides)
 
@@ -105,9 +103,7 @@ class TestGenerateMutantPeptides:
         -------
         None
         """
-        peptides = generate_mutant_peptides(
-            "ACDEFGHIKLMNPQ", mutation_position=5, mutant_aa="W"
-        )
+        peptides = generate_mutant_peptides("ACDEFGHIKLMNPQ", mutation_position=5, mutant_aa="W")
         assert all("W" in p["mut_peptide"] for p in peptides)
 
     def test_empty_on_short_sequence(self) -> None:

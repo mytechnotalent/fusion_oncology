@@ -17,9 +17,7 @@ from sklearn.preprocessing import StandardScaler
 logger = logging.getLogger(__name__)
 
 
-def _compute_variance_threshold(
-    X: pd.DataFrame, quantile: float
-) -> tuple[pd.Index, float]:
+def _compute_variance_threshold(X: pd.DataFrame, quantile: float) -> tuple[pd.Index, float]:
     """Compute the variance threshold and genes that pass it.
 
     Parameters
@@ -96,9 +94,7 @@ def standard_scale(X: pd.DataFrame) -> pd.DataFrame:
     """
     scaler = StandardScaler()
     scaled = scaler.fit_transform(X.select_dtypes(include=[np.number]))
-    return pd.DataFrame(
-        scaled, columns=X.select_dtypes(include=[np.number]).columns, index=X.index
-    )
+    return pd.DataFrame(scaled, columns=X.select_dtypes(include=[np.number]).columns, index=X.index)
 
 
 def reduce_pca(X: pd.DataFrame, n_components: int = 2) -> pd.DataFrame:

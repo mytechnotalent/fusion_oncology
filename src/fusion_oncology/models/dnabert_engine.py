@@ -100,9 +100,9 @@ class DNABERTEngine:
         """
         if self._model is None:
             logger.info("Loading DNABERT-2 on %s …", self.device)
-            self._model = AutoModel.from_pretrained(
-                self.cfg.model_path, trust_remote_code=True
-            ).to(self.device)
+            self._model = AutoModel.from_pretrained(self.cfg.model_path, trust_remote_code=True).to(
+                self.device
+            )
             self._model.eval()
         return self._model
 
@@ -194,8 +194,10 @@ class DNABERTEngine:
         """
         truncated = [s[: self.cfg.max_seq_len] for s in sequences]
         tok = self.tokenizer(
-            truncated, return_tensors="pt",
-            padding="max_length", truncation=True,
+            truncated,
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
             max_length=self.cfg.max_seq_len,
         )
         return {k: v.to(self.device) for k, v in tok.items()}

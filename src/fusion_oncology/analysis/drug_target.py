@@ -239,9 +239,7 @@ class DrugTargetMapper:
             Semicolon-separated approved drug names, or ``"—"`` when none
             are approved.
         """
-        approved = [
-            e["drug"] for e in self.lookup(gene) if e["status"].startswith("Approved")
-        ]
+        approved = [e["drug"] for e in self.lookup(gene) if e["status"].startswith("Approved")]
         return "; ".join(approved) or "—"
 
     def annotate(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -283,9 +281,7 @@ class DrugTargetMapper:
         entries = self.lookup(gene)
         if entries:
             return [{"Gene": gene, **e} for e in entries]
-        return [
-            {"Gene": gene, "drug": "—", "status": "No known drug", "indication": "—"}
-        ]
+        return [{"Gene": gene, "drug": "—", "status": "No known drug", "indication": "—"}]
 
     def full_report(self, genes: list[str]) -> pd.DataFrame:
         """Produce a detailed drug-target table for a list of genes.

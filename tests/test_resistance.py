@@ -125,9 +125,7 @@ class TestResistancePredictor:
             score = predictor.resistance_risk_score(gene)
             assert 0.0 <= score <= 1.0
 
-    def test_risk_score_known_gene_nonzero(
-        self, predictor: ResistancePredictor
-    ) -> None:
+    def test_risk_score_known_gene_nonzero(self, predictor: ResistancePredictor) -> None:
         """A gene with known mechanisms should have a nonzero risk score.
 
         Parameters

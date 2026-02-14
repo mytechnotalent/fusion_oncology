@@ -24,17 +24,17 @@ classifiers = [
 dependencies = [
     "biopython>=1.83",
     "matplotlib>=3.8",
-    "numpy>=2.4.2",
+    "numpy>=1.26",
     "pandas>=2.1",
     "requests>=2.31",
     "scikit-learn>=1.4",
     "scipy>=1.12",
     "seaborn>=0.13",
     "torch>=2.1",
-    "transformers>=5.1.0",
-    "xgboost>=3.2.0",
+    "transformers>=4.41",
+    "xgboost>=2.0",
     "click>=8.1",
-    "rich>=14.3.2",
+    "rich>=12.4",
     "lifelines>=0.28",
     "pyarrow>=14.0",
 ]
@@ -47,6 +47,7 @@ dev = [
     "mypy>=1.8",
     "pre-commit>=4.5.1",
     "black>=26.1.0",
+    "nbqa>=1.7",
 ]
 
 [project.scripts]
@@ -58,6 +59,10 @@ Documentation = "https://github.com/fusion-oncology/fusion-oncology/tree/main/do
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
 
 [tool.ruff]
 target-version = "py310"

@@ -39,9 +39,7 @@ class InstabilityAnalyzer:
         Supplies ``fuzz_iterations``.
     """
 
-    def __init__(
-        self, bert: DNABERTEngine, config: ProjectConfig | None = None
-    ) -> None:
+    def __init__(self, bert: DNABERTEngine, config: ProjectConfig | None = None) -> None:
         """Initialise the instability analyser.
 
         Parameters

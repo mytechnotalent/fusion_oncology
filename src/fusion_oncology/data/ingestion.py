@@ -209,9 +209,7 @@ class DataIngestion:
             The cached feature matrix and label series, or ``None``
             when the cache does not contain both artefacts.
         """
-        if not (
-            self.cache.has_dataframe("X_clean") and self.cache.has_dataframe("y_clean")
-        ):
+        if not (self.cache.has_dataframe("X_clean") and self.cache.has_dataframe("y_clean")):
             return None
         X = self.cache.load_dataframe("X_clean")
         y_df = self.cache.load_dataframe("y_clean")

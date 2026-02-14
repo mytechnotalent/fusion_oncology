@@ -102,9 +102,7 @@ def load_maf(
         raise FileNotFoundError(f"MAF file not found: {path}")
     raw = pd.read_csv(path, sep="\t", comment="#", low_memory=False)
     df = _compute_vaf(_select_maf_columns(raw))
-    logger.info(
-        "Loaded MAF: %d variants across %d genes", len(df), df["Hugo_Symbol"].nunique()
-    )
+    logger.info("Loaded MAF: %d variants across %d genes", len(df), df["Hugo_Symbol"].nunique())
     return df
 
 
@@ -524,9 +522,7 @@ class MultiOmicsIntegrator:
         """
         rows = [self._gene_features(gene) for gene in genes]
         result = pd.DataFrame(rows)
-        logger.info(
-            "Built multi-omics feature matrix: %d genes × %d features", *result.shape
-        )
+        logger.info("Built multi-omics feature matrix: %d genes × %d features", *result.shape)
         return result
 
     def enrich_fusion_results(

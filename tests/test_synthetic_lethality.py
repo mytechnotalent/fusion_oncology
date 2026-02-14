@@ -93,9 +93,7 @@ class TestSyntheticLethalityDetector:
         partner_names = [p["partner"] for p in partners]
         assert "PARP1" in partner_names
 
-    def test_known_partners_bidirectional(
-        self, detector: SyntheticLethalityDetector
-    ) -> None:
+    def test_known_partners_bidirectional(self, detector: SyntheticLethalityDetector) -> None:
         """SL relationship should be bidirectional.
 
         Parameters
@@ -108,9 +106,7 @@ class TestSyntheticLethalityDetector:
         assert "PARP1" in partners_a
         assert "BRCA1" in partners_b
 
-    def test_unknown_gene_returns_empty(
-        self, detector: SyntheticLethalityDetector
-    ) -> None:
+    def test_unknown_gene_returns_empty(self, detector: SyntheticLethalityDetector) -> None:
         """Unknown gene should return an empty list.
 
         Parameters
