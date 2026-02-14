@@ -194,6 +194,43 @@ class SyntheticLethalityDetector:
         )
         return df
 
+    def _screen_one_target(
+        self,
+        X: pd.DataFrame,
+        gene_a: str,
+        targets: list[str],
+        method: str,
+        threshold: float,
+    ) -> list[dict[str, Any]]:
+        """Screen all genes against a single target for SL candidates.
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Expression matrix.
+        gene_a : str
+            Target gene to screen partners for.
+        targets : list[str]
+            All target genes (excluded from partner candidates).
+        method : str
+            Correlation method.
+        threshold : float
+            Correlation threshold.
+
+        Returns
+        -------
+        list[dict[str, Any]]
+            Candidate records below *threshold*.
+        """
+        hits: list[dict[str, Any]] = []
+        for gene_b in X.columns:
+            if gene_a == gene_b or gene_b in targets:
+                continue
+            corr, pval = self._compute_correlation(X, gene_a, gene_b, method)
+            if corr < threshold:
+                hits.append(self._build_sl_candidate(gene_a, gene_b, corr, pval))
+        return hits
+
     def screen_from_expression(
         self,
         X: pd.DataFrame,
@@ -227,13 +264,9 @@ class SyntheticLethalityDetector:
         """
         results: list[dict[str, Any]] = []
         for gene_a in (g for g in target_genes if g in X.columns):
-            for gene_b in X.columns:
-                if gene_a != gene_b and gene_b not in target_genes:
-                    corr, pval = self._compute_correlation(X, gene_a, gene_b, method)
-                    if corr < threshold:
-                        results.append(
-                            self._build_sl_candidate(gene_a, gene_b, corr, pval)
-                        )
+            results.extend(
+                self._screen_one_target(X, gene_a, target_genes, method, threshold)
+            )
         return self._finalize_sl_screen(results, threshold)
 
     def _annotate_sl_gene(self, gene: str) -> tuple[str, int]:

@@ -74,20 +74,128 @@ _CSS = """
 """
 
 
+def _build_html_header(now: str) -> list[str]:
+    """Return the opening HTML sections including head and title.
+
+    Parameters
+    ----------
+    now : str
+        Formatted UTC timestamp string.
+
+    Returns
+    -------
+    list[str]
+        HTML fragments for the page header.
+    """
+    return [
+        "<!DOCTYPE html><html><head><meta charset='utf-8'>",
+        f"<title>Fusion Oncology Report — {now}</title>",
+        _CSS,
+        "</head><body>",
+        "<h1>Fusion Oncology — Analysis Report</h1>",
+        f"<p class='meta'>Generated {now}</p>",
+    ]
+
+
+def _build_cv_section(
+    cv_metrics: dict[str, Any] | None,
+) -> list[str]:
+    """Build the cross-validation performance section.
+
+    Parameters
+    ----------
+    cv_metrics : dict[str, Any] or None
+        XGBoost cross-validation metrics.
+
+    Returns
+    -------
+    list[str]
+        HTML fragments (empty list when *cv_metrics* is falsy).
+    """
+    if not cv_metrics:
+        return []
+    return [
+        "<h2>Model Performance</h2>",
+        f"<p>XGBoost {cv_metrics.get('mean_accuracy', 0):.4f} "
+        f"&plusmn; {cv_metrics.get('std_accuracy', 0):.4f} accuracy "
+        f"(5-fold stratified CV)</p>",
+    ]
+
+
+def _build_results_table(results: pd.DataFrame) -> list[str]:
+    """Build the target-ranking table section.
+
+    Parameters
+    ----------
+    results : pd.DataFrame
+        The fusion ranking table.
+
+    Returns
+    -------
+    list[str]
+        HTML fragments for the ranking table.
+    """
+    return ["<h2>Target Ranking</h2>", _df_to_html(results)]
+
+
+def _build_figures_section(
+    figures: dict[str, plt.Figure],
+) -> list[str]:
+    """Encode figures as base-64 images and wrap in HTML.
+
+    Parameters
+    ----------
+    figures : dict[str, matplotlib.figure.Figure]
+        Named matplotlib figures to embed.
+
+    Returns
+    -------
+    list[str]
+        HTML fragments for every embedded figure.
+    """
+    parts: list[str] = []
+    for title, fig in figures.items():
+        b64 = _fig_to_base64(fig)
+        parts.append(f"<h2>{title}</h2>")
+        img = f'<img src="data:image/png;base64,{b64}">'
+        parts.append(f'<div class="fig-container">{img}</div>')
+    return parts
+
+
+def _assemble_html(sections: list[str], cfg: ProjectConfig) -> Path:
+    """Join HTML sections, write to disk, and return the path.
+
+    Parameters
+    ----------
+    sections : list[str]
+        Ordered HTML fragments.
+    cfg : ProjectConfig
+        Supplies ``output_dir``.
+
+    Returns
+    -------
+    Path
+        Path to the written HTML file.
+    """
+    out = cfg.output_dir / "fusion_report.html"
+    out.write_text("\n".join(sections))
+    logger.info("Report saved → %s", out)
+    return out
+
+
 def generate_html_report(
     results: pd.DataFrame,
     figures: dict[str, plt.Figure],
     cv_metrics: dict[str, Any] | None = None,
     config: ProjectConfig | None = None,
 ) -> Path:
-    """
-    Build and save a self-contained HTML report.
+    """Build and save a self-contained HTML report.
 
     Parameters
     ----------
     results : pd.DataFrame
         The fusion ranking table.
-    figures : dict[str, Figure]
+    figures : dict[str, matplotlib.figure.Figure]
         Named matplotlib figures to embed.
     cv_metrics : dict, optional
         XGBoost cross-validation metrics.
@@ -101,40 +209,9 @@ def generate_html_report(
     """
     cfg = config or ProjectConfig()
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-
-    sections: list[str] = [
-        "<!DOCTYPE html><html><head><meta charset='utf-8'>",
-        f"<title>Fusion Oncology Report — {now}</title>",
-        _CSS,
-        "</head><body>",
-        "<h1>Fusion Oncology — Analysis Report</h1>",
-        f"<p class='meta'>Generated {now}</p>",
-    ]
-
-    # Model performance
-    if cv_metrics:
-        sections.append("<h2>Model Performance</h2>")
-        sections.append(
-            f"<p>XGBoost {cv_metrics.get('mean_accuracy', 0):.4f} "
-            f"&plusmn; {cv_metrics.get('std_accuracy', 0):.4f} accuracy "
-            f"(5-fold stratified CV)</p>"
-        )
-
-    # Target ranking table
-    sections.append("<h2>Target Ranking</h2>")
-    sections.append(_df_to_html(results))
-
-    # Figures
-    for title, fig in figures.items():
-        b64 = _fig_to_base64(fig)
-        sections.append(f"<h2>{title}</h2>")
-        sections.append(
-            f'<div class="fig-container"><img src="data:image/png;base64,{b64}"></div>'
-        )
-
+    sections = _build_html_header(now)
+    sections += _build_cv_section(cv_metrics)
+    sections += _build_results_table(results)
+    sections += _build_figures_section(figures)
     sections.append("</body></html>")
-
-    out = cfg.output_dir / "fusion_report.html"
-    out.write_text("\n".join(sections))
-    logger.info("Report saved → %s", out)
-    return out
+    return _assemble_html(sections, cfg)

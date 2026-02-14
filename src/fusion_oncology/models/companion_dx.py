@@ -176,18 +176,15 @@ class CompanionDiagnostic:
             Drug match dicts with ``gene``, ``drug``, ``status``,
             ``indication``.
         """
+        # fmt: off
         matches: list[dict[str, Any]] = []
         for gene in patient.mutated_genes:
             for info in self._drug_matcher.lookup(gene):
-                matches.append(
-                    {
-                        "gene": gene,
-                        "drug": info["drug"],
-                        "status": info["status"],
-                        "indication": info["indication"],
-                    }
-                )
+                matches.append({"gene": gene, "drug": info["drug"],
+                                "status": info["status"],
+                                "indication": info["indication"]})
         return matches
+        # fmt: on
 
     def _match_amplified_drugs(
         self,
@@ -203,17 +200,16 @@ class CompanionDiagnostic:
         matches : list[dict[str, Any]]
             Existing match list to extend (mutated in place).
         """
+        # fmt: off
         for gene in patient.amplified_genes():
             for info in self._drug_matcher.lookup(gene):
-                entry = {
-                    "gene": gene,
-                    "drug": info["drug"],
-                    "status": info["status"],
-                    "indication": info["indication"],
-                    "alteration": "amplification",
-                }
+                entry = {"gene": gene, "drug": info["drug"],
+                         "status": info["status"],
+                         "indication": info["indication"],
+                         "alteration": "amplification"}
                 if entry not in matches:
                     matches.append(entry)
+        # fmt: on
 
     def _match_drugs(
         self,
@@ -325,17 +321,16 @@ class CompanionDiagnostic:
             Record with ``lost_gene``, ``sl_partner``,
             ``drugs_available``, ``rationale``.
         """
+        # fmt: off
         drugs = self._drug_matcher.lookup(partner)
         return {
-            "lost_gene": gene,
-            "sl_partner": partner,
+            "lost_gene": gene, "sl_partner": partner,
             "drugs_available": [d["drug"] for d in drugs],
             "rationale": (
                 f"Loss of {gene} creates dependency on "
                 f"{partner} — targeting {partner} may be "
-                f"selectively lethal to tumour."
-            ),
-        }
+                f"selectively lethal to tumour.")}
+        # fmt: on
 
     def _screen_gene_sl(
         self,
@@ -402,18 +397,16 @@ class CompanionDiagnostic:
         list[dict[str, Any]]
             Resistance alert dicts.
         """
+        # fmt: off
         alerts: list[dict[str, Any]] = []
         for mech in self._resistance.predict(gene):
-            alerts.append(
-                {
-                    "gene": gene,
-                    "variant": variant,
-                    "mechanism": mech.get("mechanism", ""),
-                    "affected_drugs": [mech.get("drug", "")],
-                    "strategy": [mech.get("strategy", "")],
-                }
-            )
+            alerts.append({
+                "gene": gene, "variant": variant,
+                "mechanism": mech.get("mechanism", ""),
+                "affected_drugs": [mech.get("drug", "")],
+                "strategy": [mech.get("strategy", "")]})
         return alerts
+        # fmt: on
 
     def _check_resistance(
         self,
@@ -431,15 +424,16 @@ class CompanionDiagnostic:
         list[dict[str, Any]]
             Resistance alerts.
         """
+        # fmt: off
         alerts, seen = [], set()
         for mutation in patient.mutations:
             gene = mutation.get("gene", "")
             if gene not in seen:
                 seen.add(gene)
-                alerts.extend(
-                    self._check_gene_resistance(gene, mutation.get("variant", ""))
-                )
+                alerts.extend(self._check_gene_resistance(
+                    gene, mutation.get("variant", "")))
         return alerts
+        # fmt: on
 
     # -- helpers for _classify_actionable -----------------------------
 
@@ -597,17 +591,16 @@ class CompanionDiagnostic:
         list[dict[str, Any]]
             Approved-therapy recommendations.
         """
+        # fmt: off
         recs: list[dict[str, Any]] = []
-        approved = [m for m in drug_matches if m["status"] == "Approved"]
-        for m in approved:
-            conf = 0.27 if m["drug"] in resisted else 0.9
-            rat = f"Approved for {m['indication']}" f" targeting {m['gene']}."
-            recs.append(
-                self._build_rec(
-                    m["drug"], "targeted", m["gene"], rat, conf, m["drug"] in resisted
-                )
-            )
+        for m in drug_matches:
+            if m["status"] != "Approved":
+                continue
+            c, r = (0.27, True) if m["drug"] in resisted else (0.9, False)
+            rat = f"Approved for {m['indication']} targeting {m['gene']}."
+            recs.append(self._build_rec(m["drug"], "targeted", m["gene"], rat, c, r))
         return recs
+        # fmt: on
 
     def _sl_recs(
         self,
@@ -625,21 +618,16 @@ class CompanionDiagnostic:
         list[dict[str, Any]]
             SL-based recommendations.
         """
+        # fmt: off
         recs: list[dict[str, Any]] = []
+        typ = "synthetic_lethality"
         for sl in sl_hits:
             for drug in sl.get("drugs_available", []):
                 if drug != "—":
-                    recs.append(
-                        self._build_rec(
-                            drug,
-                            "synthetic_lethality",
-                            sl["sl_partner"],
-                            sl["rationale"],
-                            0.65,
-                            False,
-                        )
-                    )
+                    p, r = sl["sl_partner"], sl["rationale"]
+                    recs.append(self._build_rec(drug, typ, p, r, 0.65, False))
         return recs
+        # fmt: on
 
     def _immunotherapy_rec(
         self,
@@ -657,18 +645,15 @@ class CompanionDiagnostic:
         list[dict[str, Any]]
             Zero or one immunotherapy recommendation.
         """
+        # fmt: off
         if patient.tumour_mutational_burden < 10:
             return []
         tmb = patient.tumour_mutational_burden
-        rat = (
-            f"TMB = {tmb} mutations "
-            f"(≥10 = TMB-High). FDA-approved agnostic indication."
-        )
-        return [
-            self._build_rec(
-                "Pembrolizumab (anti-PD-1)", "immunotherapy", "TMB-H", rat, 0.80, False
-            )
-        ]
+        rat = (f"TMB = {tmb} mutations "
+               f"(≥10 = TMB-High). FDA-approved agnostic indication.")
+        return [self._build_rec("Pembrolizumab (anti-PD-1)",
+                                "immunotherapy", "TMB-H", rat, 0.80, False)]
+        # fmt: on
 
     def _investigational_recs(
         self,
@@ -686,19 +671,16 @@ class CompanionDiagnostic:
         list[dict[str, Any]]
             Investigational-therapy recommendations.
         """
+        # fmt: off
         recs: list[dict[str, Any]] = []
         for m in drug_matches:
             if m["status"] == "Clinical trial":
-                rat = (
-                    f"In clinical trials for {m['indication']} "
-                    f"targeting {m['gene']}."
-                )
-                recs.append(
-                    self._build_rec(
-                        m["drug"], "investigational", m["gene"], rat, 0.50, False
-                    )
-                )
+                rat = (f"In clinical trials for {m['indication']} "
+                       f"targeting {m['gene']}.")
+                recs.append(self._build_rec(
+                    m["drug"], "investigational", m["gene"], rat, 0.5, False))
         return recs
+        # fmt: on
 
     def _deduplicate_and_rank(
         self,
@@ -800,18 +782,14 @@ class CompanionDiagnostic:
         dict[str, Any]
             Complete analysis result.
         """
+        # fmt: off
         return {
-            "patient_id": patient.patient_id,
-            "cancer_type": patient.cancer_type,
-            "tmb": patient.tumour_mutational_burden,
-            "actionable_mutations": action,
-            "drug_matches": drugs,
-            "pathway_hits": paths,
-            "synthetic_lethal": sl,
-            "resistance_alerts": resist,
-            "treatment_plan": plan,
-            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
-        }
+            "patient_id": patient.patient_id, "cancer_type": patient.cancer_type,
+            "tmb": patient.tumour_mutational_burden, "actionable_mutations": action,
+            "drug_matches": drugs, "pathway_hits": paths, "synthetic_lethal": sl,
+            "resistance_alerts": resist, "treatment_plan": plan,
+            "timestamp": datetime.now(tz=timezone.utc).isoformat()}
+        # fmt: on
 
     def analyse(self, patient: PatientProfile) -> dict[str, Any]:
         """Run the full companion diagnostic analysis for a patient.
@@ -863,15 +841,14 @@ class CompanionDiagnostic:
         list[str]
             Header lines.
         """
+        # fmt: off
         return [
-            "=" * 72,
-            "COMPANION DIAGNOSTIC REPORT",
-            "=" * 72,
+            "=" * 72, "COMPANION DIAGNOSTIC REPORT", "=" * 72,
             f"Patient ID:   {results['patient_id']}",
             f"Cancer Type:  {results['cancer_type']}",
             f"TMB:          {results['tmb']} mutations",
-            f"Generated:    {results['timestamp']}",
-        ]
+            f"Generated:    {results['timestamp']}"]
+        # fmt: on
 
     def _report_actionable(
         self,
@@ -913,15 +890,16 @@ class CompanionDiagnostic:
         list[str]
             Treatment recommendation lines.
         """
+        # fmt: off
         lines = ["", "─" * 72, "TREATMENT RECOMMENDATIONS", "─" * 72]
         for rec in results.get("treatment_plan", []):
             flag = " ⚠ RESISTANCE" if rec.get("resistance_concern") else ""
             lines.append(
                 f"  #{rec['rank']}  {rec['therapy']} ({rec['type']})"
-                f"  [{rec['confidence']:.0%} confidence]{flag}"
-            )
+                f"  [{rec['confidence']:.0%} confidence]{flag}")
             lines.append(f"       → {rec['rationale']}")
         return lines
+        # fmt: on
 
     def _report_resistance_alerts(
         self,

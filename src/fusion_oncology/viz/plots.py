@@ -47,7 +47,6 @@ def fusion_bar(
     matplotlib.figure.Figure
         The rendered bar-chart figure.
     """
-    cfg = config or ProjectConfig()
     fig, ax = plt.subplots(figsize=(8, max(4, len(results) * 0.6)))
     df = results.sort_values("Fusion_Index")
     colors = sns.color_palette("magma", n_colors=len(df))
@@ -56,6 +55,73 @@ def fusion_bar(
     ax.set_title("Fusion Oncology — Target Ranking")
     fig.tight_layout()
     return fig
+
+
+def _draw_scatter(ax: Any, results: pd.DataFrame) -> Any:
+    """Plot the XGB-importance vs instability scatter.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Target axes.
+    results : pd.DataFrame
+        Must contain ``XGB_Importance``, ``Instability``, and
+        ``Fusion_Index`` columns.
+
+    Returns
+    -------
+    matplotlib.collections.PathCollection
+        The scatter artist (used for the colour-bar).
+    """
+    return ax.scatter(
+        results["XGB_Importance"],
+        results["Instability"],
+        s=results["Fusion_Index"] * 200 + 50,
+        c=results["Fusion_Index"],
+        cmap="magma",
+        edgecolors="k",
+        alpha=0.85,
+    )
+
+
+def _annotate_genes(ax: Any, results: pd.DataFrame) -> None:
+    """Label each point with its gene name.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Target axes.
+    results : pd.DataFrame
+        Must contain ``Gene``, ``XGB_Importance``, and
+        ``Instability`` columns.
+    """
+    for _, row in results.iterrows():
+        ax.annotate(
+            row["Gene"],
+            (row["XGB_Importance"], row["Instability"]),
+            fontsize=9,
+            ha="left",
+            va="bottom",
+        )
+
+
+def _style_scatter_axes(ax: Any, sc: Any, fig: plt.Figure) -> None:
+    """Apply labels, title, colour-bar, and layout.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Target axes.
+    sc : matplotlib.collections.PathCollection
+        Scatter artist for the colour-bar.
+    fig : matplotlib.figure.Figure
+        Parent figure.
+    """
+    ax.set_xlabel("XGBoost Importance")
+    ax.set_ylabel("Embedding Instability")
+    ax.set_title("Importance vs Structural Instability")
+    plt.colorbar(sc, label="Fusion Index")
+    fig.tight_layout()
 
 
 def importance_vs_instability(results: pd.DataFrame) -> plt.Figure:
@@ -76,27 +142,52 @@ def importance_vs_instability(results: pd.DataFrame) -> plt.Figure:
         The rendered scatter-plot figure.
     """
     fig, ax = plt.subplots(figsize=(7, 6))
-    sc = ax.scatter(
-        results["XGB_Importance"],
-        results["Instability"],
-        s=results["Fusion_Index"] * 200 + 50,
-        c=results["Fusion_Index"],
-        cmap="magma",
-        edgecolors="k",
-        alpha=0.85,
+    sc = _draw_scatter(ax, results)
+    _annotate_genes(ax, results)
+    _style_scatter_axes(ax, sc, fig)
+    return fig
+
+
+def _empty_heatmap() -> plt.Figure:
+    """Return a placeholder figure when no genes match.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+        A figure with a centred "no matching genes" message.
+    """
+    fig, ax = plt.subplots()
+    ax.text(
+        0.5,
+        0.5,
+        "No matching genes found in expression matrix",
+        ha="center",
+        va="center",
     )
-    for _, row in results.iterrows():
-        ax.annotate(
-            row["Gene"],
-            (row["XGB_Importance"], row["Instability"]),
-            fontsize=9,
-            ha="left",
-            va="bottom",
-        )
-    ax.set_xlabel("XGBoost Importance")
-    ax.set_ylabel("Embedding Instability")
-    ax.set_title("Importance vs Structural Instability")
-    plt.colorbar(sc, label="Fusion Index")
+    return fig
+
+
+def _draw_heatmap(X: pd.DataFrame, present: list[str], max_samples: int) -> plt.Figure:
+    """Render the seaborn heatmap for selected genes.
+
+    Parameters
+    ----------
+    X : pd.DataFrame
+        Expression matrix (samples × genes).
+    present : list[str]
+        Gene columns that exist in *X*.
+    max_samples : int
+        Maximum rows to display.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+        The rendered heatmap figure.
+    """
+    sub = X[present].iloc[:max_samples]
+    fig, ax = plt.subplots(figsize=(max(6, len(present)), 8))
+    sns.heatmap(sub, cmap="vlag", center=0, ax=ax, yticklabels=False)
+    ax.set_title("Expression Heatmap — Top Fusion Targets")
     fig.tight_layout()
     return fig
 
@@ -127,22 +218,23 @@ def expression_heatmap(
     """
     present = [g for g in top_genes if g in X.columns]
     if not present:
-        fig, ax = plt.subplots()
-        ax.text(
-            0.5,
-            0.5,
-            "No matching genes found in expression matrix",
-            ha="center",
-            va="center",
-        )
-        return fig
+        return _empty_heatmap()
+    return _draw_heatmap(X, present, max_samples)
 
-    sub = X[present].iloc[:max_samples]
-    fig, ax = plt.subplots(figsize=(max(6, len(present)), 8))
-    sns.heatmap(sub, cmap="vlag", center=0, ax=ax, yticklabels=False)
-    ax.set_title("Expression Heatmap — Top Fusion Targets")
-    fig.tight_layout()
-    return fig
+
+def _color_boxes(bp: dict[str, Any], n: int) -> None:
+    """Apply a magma colour palette to box-plot patches.
+
+    Parameters
+    ----------
+    bp : dict[str, Any]
+        Box-plot artist dict returned by ``ax.boxplot``.
+    n : int
+        Number of boxes (palette size).
+    """
+    colors = sns.color_palette("magma", n)
+    for patch, color in zip(bp["boxes"], colors):
+        patch.set_facecolor(color)
 
 
 def instability_boxplot(drift_reports: list[dict[str, Any]]) -> plt.Figure:
@@ -163,13 +255,74 @@ def instability_boxplot(drift_reports: list[dict[str, Any]]) -> plt.Figure:
     data = [r["all_drifts"] for r in drift_reports]
     labels = [r["gene"] for r in drift_reports]
     bp = ax.boxplot(data, labels=labels, patch_artist=True)
-    colors = sns.color_palette("magma", len(data))
-    for patch, color in zip(bp["boxes"], colors):
-        patch.set_facecolor(color)
-    ax.set_ylabel("Cosine Drift")
-    ax.set_title("Mutational Instability Distribution")
+    _color_boxes(bp, len(data))
+    ax.set(ylabel="Cosine Drift", title="Mutational Instability Distribution")
     fig.tight_layout()
     return fig
+
+
+def _scatter_one_group(
+    ax: Any, pca_df: pd.DataFrame, mask: pd.Series, lbl: str, color: Any
+) -> None:
+    """Scatter one cancer-type group on the PCA axes.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Target axes.
+    pca_df : pd.DataFrame
+        DataFrame with ``PC1`` and ``PC2`` columns.
+    mask : pd.Series
+        Boolean mask for the cancer type.
+    lbl : str
+        Cancer-type label.
+    color : Any
+        Matplotlib color.
+    """
+    ax.scatter(
+        pca_df.loc[mask, "PC1"],
+        pca_df.loc[mask, "PC2"],
+        label=lbl,
+        s=15,
+        alpha=0.7,
+        color=color,
+    )
+
+
+def _draw_pca_groups(ax: Any, pca_df: pd.DataFrame, labels: pd.Series) -> None:
+    """Draw per-cancer-type scatter groups on the PCA axes.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Target axes.
+    pca_df : pd.DataFrame
+        DataFrame with ``PC1`` and ``PC2`` columns.
+    labels : pd.Series
+        Cancer-type labels aligned with *pca_df* rows.
+    """
+    unique = labels.unique()
+    palette = sns.color_palette("husl", len(unique))
+    for i, lbl in enumerate(unique):
+        mask = labels == lbl
+        _scatter_one_group(ax, pca_df, mask, lbl, palette[i])
+
+
+def _style_pca_axes(ax: Any, fig: plt.Figure) -> None:
+    """Add legend, axis labels, title, and tighten layout.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Target axes.
+    fig : matplotlib.figure.Figure
+        Parent figure.
+    """
+    ax.legend(fontsize=7, loc="best", ncol=2)
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    ax.set_title("PCA — Sample Clustering by Cancer Type")
+    fig.tight_layout()
 
 
 def pca_scatter(
@@ -191,23 +344,8 @@ def pca_scatter(
         The rendered scatter-plot figure.
     """
     fig, ax = plt.subplots(figsize=(8, 7))
-    unique = labels.unique()
-    palette = sns.color_palette("husl", len(unique))
-    for i, label in enumerate(unique):
-        mask = labels == label
-        ax.scatter(
-            pca_df.loc[mask, "PC1"],
-            pca_df.loc[mask, "PC2"],
-            label=label,
-            s=15,
-            alpha=0.7,
-            color=palette[i],
-        )
-    ax.legend(fontsize=7, loc="best", ncol=2)
-    ax.set_xlabel("PC1")
-    ax.set_ylabel("PC2")
-    ax.set_title("PCA — Sample Clustering by Cancer Type")
-    fig.tight_layout()
+    _draw_pca_groups(ax, pca_df, labels)
+    _style_pca_axes(ax, fig)
     return fig
 
 

@@ -111,14 +111,9 @@ class InteractionNetwork:
         """Log summary counts of nodes and edges in the network."""
         n_drugs, n_genes, n_pws = self._count_node_types()
         n_edges = sum(len(v) for v in self._adjacency.values()) // 2
-        logger.info(
-            "Network: %d nodes (%d drugs, %d genes, %d pw), %d edges",
-            len(self._node_types),
-            n_drugs,
-            n_genes,
-            n_pws,
-            n_edges,
-        )
+        n_total = len(self._node_types)
+        msg = "Network: %d nodes (%d drugs, %d genes, %d pw), %d edges"
+        logger.info(msg, n_total, n_drugs, n_genes, n_pws, n_edges)
 
     def _build_network(self) -> None:
         """Populate the graph from curated drug-target and pathway databases.
@@ -548,12 +543,11 @@ class InteractionNetwork:
         node_drugs = self._get_neighbours_by_type(node, "drug")
         if not node_drugs:
             return None
-        node_pathways = set(self._get_neighbours_by_type(node, "pathway"))
-        shared = gene_pathways & node_pathways
+        node_pws = set(self._get_neighbours_by_type(node, "pathway"))
         return {
             "target": node,
             "distance": dist,
-            "shared_pathways": list(shared),
+            "shared_pathways": list(gene_pathways & node_pws),
             "drugs_available": node_drugs,
         }
 

@@ -44,11 +44,33 @@ class XGBoostEngine:
         self.label_encoder = LabelEncoder()
         self._feature_names: list[str] = []
 
+    # ── training helpers ────────────────────────────────────────────────
+
+    def _build_classifier(self) -> xgb.XGBClassifier:
+        """Build a full XGBoost classifier with production hyper-params.
+
+        Returns
+        -------
+        xgb.XGBClassifier
+            Un-fitted classifier instance.
+        """
+        return xgb.XGBClassifier(
+            n_estimators=self.cfg.xgb_n_estimators,
+            max_depth=self.cfg.xgb_max_depth,
+            learning_rate=0.1,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            objective="multi:softprob",
+            eval_metric="mlogloss",
+            use_label_encoder=False,
+            verbosity=0,
+            n_jobs=-1,
+        )
+
     # ── training ─────────────────────────────────────────────────────────
 
     def fit(self, X: pd.DataFrame, y: pd.Series) -> "XGBoostEngine":
-        """
-        Train XGBoost on the expression matrix.
+        """Train XGBoost on the expression matrix.
 
         Parameters
         ----------
@@ -64,31 +86,75 @@ class XGBoostEngine:
         X_num = X.select_dtypes(include=[np.number])
         self._feature_names = list(X_num.columns)
         y_enc = self.label_encoder.fit_transform(y)
+        self.model = self._build_classifier()
+        self.model.fit(X_num, y_enc)
+        n, d = self.cfg.xgb_n_estimators, self.cfg.xgb_max_depth
+        logger.info("XGBoost fitted  (%d trees, depth %d)", n, d)
+        return self
 
-        self.model = xgb.XGBClassifier(
+    # ── evaluation helpers ───────────────────────────────────────────────
+
+    def _encode_labels(self, y: pd.Series) -> np.ndarray:
+        """Encode labels, reusing the fitted encoder when available.
+
+        Parameters
+        ----------
+        y : pd.Series
+            Raw cancer-type labels.
+
+        Returns
+        -------
+        np.ndarray
+            Integer-encoded label array.
+        """
+        if hasattr(self.label_encoder, "classes_"):
+            return self.label_encoder.transform(y)
+        return LabelEncoder().fit_transform(y)
+
+    def _build_cv_classifier(self) -> xgb.XGBClassifier:
+        """Build a lightweight XGBoost classifier for CV scoring.
+
+        Returns
+        -------
+        xgb.XGBClassifier
+            Un-fitted classifier with minimal logging.
+        """
+        return xgb.XGBClassifier(
             n_estimators=self.cfg.xgb_n_estimators,
             max_depth=self.cfg.xgb_max_depth,
-            learning_rate=0.1,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            objective="multi:softprob",
-            eval_metric="mlogloss",
-            use_label_encoder=False,
             verbosity=0,
+            use_label_encoder=False,
             n_jobs=-1,
         )
-        self.model.fit(X_num, y_enc)
-        logger.info(
-            "XGBoost fitted  (%d trees, depth %d)",
-            self.cfg.xgb_n_estimators,
-            self.cfg.xgb_max_depth,
-        )
-        return self
+
+    def _compute_cv_metrics(
+        self,
+        scores: np.ndarray,
+    ) -> dict[str, float]:
+        """Compute and log mean/std accuracy from CV scores.
+
+        Parameters
+        ----------
+        scores : np.ndarray
+            Per-fold accuracy values.
+
+        Returns
+        -------
+        dict[str, float]
+            Keys ``mean_accuracy`` and ``std_accuracy``.
+        """
+        mean, std = float(np.mean(scores)), float(np.std(scores))
+        result = {"mean_accuracy": mean, "std_accuracy": std}
+        logger.info("CV accuracy: %.4f ± %.4f", mean, std)
+        return result
 
     # ── evaluation ───────────────────────────────────────────────────────
 
     def cross_validate(
-        self, X: pd.DataFrame, y: pd.Series, folds: int = 5
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+        folds: int = 5,
     ) -> dict[str, Any]:
         """Run stratified k-fold cross-validation.
 
@@ -108,29 +174,11 @@ class XGBoostEngine:
             Keys ``mean_accuracy`` and ``std_accuracy``.
         """
         X_num = X.select_dtypes(include=[np.number])
-        y_enc = (
-            self.label_encoder.transform(y)
-            if hasattr(self.label_encoder, "classes_")
-            else LabelEncoder().fit_transform(y)
-        )
+        y_enc = self._encode_labels(y)
         skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
-
-        model_cv = xgb.XGBClassifier(
-            n_estimators=self.cfg.xgb_n_estimators,
-            max_depth=self.cfg.xgb_max_depth,
-            verbosity=0,
-            use_label_encoder=False,
-            n_jobs=-1,
-        )
-        scores = cross_val_score(model_cv, X_num, y_enc, cv=skf, scoring="accuracy")
-        result = {
-            "mean_accuracy": float(np.mean(scores)),
-            "std_accuracy": float(np.std(scores)),
-        }
-        logger.info(
-            "CV accuracy: %.4f ± %.4f", result["mean_accuracy"], result["std_accuracy"]
-        )
-        return result
+        clf = self._build_cv_classifier()
+        scores = cross_val_score(clf, X_num, y_enc, cv=skf, scoring="accuracy")
+        return self._compute_cv_metrics(scores)
 
     # ── importance ───────────────────────────────────────────────────────
 

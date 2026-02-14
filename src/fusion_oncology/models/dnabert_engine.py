@@ -106,11 +106,57 @@ class DNABERTEngine:
             self._model.eval()
         return self._model
 
-    # ── embedding ────────────────────────────────────────────────────────
+    # ── embedding helpers ───────────────────────────────────────────────
+
+    def _tokenize_sequence(
+        self,
+        sequence: str,
+    ) -> dict[str, torch.Tensor]:
+        """Tokenize a single DNA sequence and move tensors to device.
+
+        Parameters
+        ----------
+        sequence : str
+            Raw DNA string (characters A / C / G / T).
+
+        Returns
+        -------
+        dict[str, torch.Tensor]
+            Token tensors on the compute device.
+        """
+        tok = self.tokenizer(
+            sequence[: self.cfg.max_seq_len],
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=self.cfg.max_seq_len,
+        )
+        return {k: v.to(self.device) for k, v in tok.items()}
+
+    def _mean_pool(
+        self,
+        inputs: dict[str, torch.Tensor],
+    ) -> np.ndarray:
+        """Run a forward pass and mean-pool the last hidden state.
+
+        Parameters
+        ----------
+        inputs : dict[str, torch.Tensor]
+            Tokenized inputs already on the target device.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(hidden_dim,)`` — single-sequence embedding.
+        """
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+        return outputs.last_hidden_state.mean(dim=1).cpu().numpy()[0]
+
+    # ── public embedding API ─────────────────────────────────────────────
 
     def embed(self, sequence: str) -> np.ndarray:
-        """
-        Generate a fixed-size embedding for a DNA sequence.
+        """Generate a fixed-size embedding for a DNA sequence.
 
         The sequence is truncated to ``max_seq_len`` tokens, mean-pooled
         across the sequence dimension, and returned as a 1-D numpy vector.
@@ -125,23 +171,63 @@ class DNABERTEngine:
         np.ndarray
             Shape ``(hidden_dim,)`` — typically 768 for DNABERT-2-117M.
         """
-        inputs = self.tokenizer(
-            sequence[: self.cfg.max_seq_len],
-            return_tensors="pt",
-            padding="max_length",
-            truncation=True,
+        inputs = self._tokenize_sequence(sequence)
+        return self._mean_pool(inputs)
+
+    # ── batch embedding helpers ──────────────────────────────────────────
+
+    def _tokenize_batch(
+        self,
+        sequences: list[str],
+    ) -> dict[str, torch.Tensor]:
+        """Tokenize a batch of DNA sequences and move to device.
+
+        Parameters
+        ----------
+        sequences : list[str]
+            Batch of raw DNA strings.
+
+        Returns
+        -------
+        dict[str, torch.Tensor]
+            Token tensors on the compute device.
+        """
+        truncated = [s[: self.cfg.max_seq_len] for s in sequences]
+        tok = self.tokenizer(
+            truncated, return_tensors="pt",
+            padding="max_length", truncation=True,
             max_length=self.cfg.max_seq_len,
         )
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        return {k: v.to(self.device) for k, v in tok.items()}
+
+    def _embed_batch(
+        self,
+        inputs: dict[str, torch.Tensor],
+    ) -> np.ndarray:
+        """Forward-pass and mean-pool for a token batch.
+
+        Parameters
+        ----------
+        inputs : dict[str, torch.Tensor]
+            Tokenized batch inputs on the target device.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(batch, hidden_dim)``.
+        """
         with torch.no_grad():
             outputs = self.model(**inputs)
-        # Mean-pool the last hidden state over the sequence axis
-        embedding = outputs.last_hidden_state.mean(dim=1).cpu().numpy()[0]
-        return embedding
+        return outputs.last_hidden_state.mean(dim=1).cpu().numpy()
 
-    def batch_embed(self, sequences: list[str], batch_size: int = 8) -> np.ndarray:
-        """
-        Embed multiple sequences efficiently in batches.
+    # ── public batch API ─────────────────────────────────────────────────
+
+    def batch_embed(
+        self,
+        sequences: list[str],
+        batch_size: int = 8,
+    ) -> np.ndarray:
+        """Embed multiple sequences efficiently in batches.
 
         Parameters
         ----------
@@ -158,17 +244,6 @@ class DNABERTEngine:
         all_embeddings: list[np.ndarray] = []
         for start in range(0, len(sequences), batch_size):
             batch = sequences[start : start + batch_size]
-            truncated = [s[: self.cfg.max_seq_len] for s in batch]
-            inputs = self.tokenizer(
-                truncated,
-                return_tensors="pt",
-                padding="max_length",
-                truncation=True,
-                max_length=self.cfg.max_seq_len,
-            )
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            with torch.no_grad():
-                outputs = self.model(**inputs)
-            embs = outputs.last_hidden_state.mean(dim=1).cpu().numpy()
-            all_embeddings.append(embs)
+            inputs = self._tokenize_batch(batch)
+            all_embeddings.append(self._embed_batch(inputs))
         return np.vstack(all_embeddings)

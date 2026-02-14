@@ -1,0 +1,14 @@
+[
+    {
+        "gene": "EGFR",
+        "variant": "L858R"
+    },
+    {
+        "gene": "TP53",
+        "variant": "R175H"
+    },
+    {
+        "gene": "KRAS",
+        "variant": "G12C"
+    }
+]

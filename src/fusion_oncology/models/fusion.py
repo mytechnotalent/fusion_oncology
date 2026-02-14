@@ -52,6 +52,21 @@ class FusionEngine:
         Runtime configuration.
     """
 
+    # ── initialisation helpers ───────────────────────────────────────────
+
+    def _init_analyzers(self) -> None:
+        """Create downstream analysis components.
+
+        Instantiates instability, pathway, drug-target, resistance,
+        synthetic-lethality, and network-pharmacology analyzers.
+        """
+        self.instability = InstabilityAnalyzer(self.bert, self.cfg)
+        self.pathway = PathwayEnrichment(self.cfg)
+        self.drug_mapper = DrugTargetMapper(self.cfg)
+        self.resistance = ResistancePredictor(self.cfg)
+        self.sl_detector = SyntheticLethalityDetector(self.cfg)
+        self.network = InteractionNetwork(self.cfg)
+
     def __init__(self, config: ProjectConfig | None = None) -> None:
         """Initialise sub-engines and analysis components.
 
@@ -63,22 +78,175 @@ class FusionEngine:
         self.cfg = config or ProjectConfig()
         self.xgb = XGBoostEngine(self.cfg)
         self.bert = DNABERTEngine(self.cfg)
-        self.instability = InstabilityAnalyzer(self.bert, self.cfg)
-        self.pathway = PathwayEnrichment(self.cfg)
-        self.drug_mapper = DrugTargetMapper(self.cfg)
-        self.resistance = ResistancePredictor(self.cfg)
-        self.sl_detector = SyntheticLethalityDetector(self.cfg)
-        self.network = InteractionNetwork(self.cfg)
-
-        # Populated after analysis
+        self._init_analyzers()
         self.results: pd.DataFrame = pd.DataFrame()
         self.cv_metrics: dict[str, Any] = {}
+
+    # ── run helpers ──────────────────────────────────────────────────────
+
+    def _train_xgboost(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+    ) -> dict[str, float]:
+        """Train XGBoost and return top-gene importance scores.
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Gene-expression feature matrix.
+        y : pd.Series
+            Cancer-type labels.
+
+        Returns
+        -------
+        dict[str, float]
+            Top-K gene names mapped to importance scores.
+        """
+        logger.info("Step 1/4: Training XGBoost classifier …")
+        self.xgb.fit(X, y)
+        self.cv_metrics = self.xgb.cross_validate(X, y)
+        return self.xgb.top_genes()
+
+    def _fetch_sequences(
+        self,
+        genes: dict[str, float],
+    ) -> dict[str, str]:
+        """Retrieve DNA sequences from NCBI for each gene.
+
+        Parameters
+        ----------
+        genes : dict[str, float]
+            Gene names (keys) with importance scores (values).
+
+        Returns
+        -------
+        dict[str, str]
+            Gene names mapped to their RefSeq DNA sequences.
+        """
+        logger.info("Step 2/4: Fetching gene sequences from NCBI …")
+        sequences: dict[str, str] = {}
+        for gene in genes:
+            sequences[gene] = fetch_gene_sequence(gene, self.cfg)
+        return sequences
+
+    def _gene_row(
+        self,
+        gene: str,
+        importance: float,
+        seq: str,
+    ) -> dict[str, Any]:
+        """Build a single result row for one gene.
+
+        Parameters
+        ----------
+        gene : str
+            Gene symbol.
+        importance : float
+            XGBoost feature importance score.
+        seq : str
+            DNA sequence for the gene.
+
+        Returns
+        -------
+        dict[str, Any]
+            Row dict with gene metrics.
+        """
+        inst = self.instability.score(gene, seq)
+        fi = round(importance * inst * 1000, 4)
+        logger.info("  %s imp=%.4f inst=%.4f fi=%.4f", gene, importance, inst, fi)
+        return {
+            "Gene": gene,
+            "XGB_Importance": round(importance, 6),
+            "Instability": round(inst, 6),
+            "Fusion_Index": fi,
+            "Seq_Length": len(seq),
+        }
+
+    def _score_instability(
+        self,
+        top: dict[str, float],
+        sequences: dict[str, str],
+    ) -> None:
+        """Score mutational instability and populate results.
+
+        Parameters
+        ----------
+        top : dict[str, float]
+            Top gene importance scores from XGBoost.
+        sequences : dict[str, str]
+            Gene-name → DNA-sequence mapping.
+        """
+        logger.info("Step 3/4: Computing mutational instability …")
+        rows = [self._gene_row(g, imp, sequences[g]) for g, imp in top.items()]
+        df = pd.DataFrame(rows).sort_values(
+            "Fusion_Index",
+            ascending=False,
+        )
+        self.results = df.reset_index(drop=True)
+
+    def _enrich_pathways(self) -> None:
+        """Annotate results with KEGG / Reactome pathway enrichment.
+
+        Silently skips enrichment when the pathway database or
+        network is unavailable.
+        """
+        logger.info("Step 4/7: Pathway enrichment …")
+        try:
+            self.results = self.pathway.annotate(self.results)
+        except Exception:
+            logger.warning("Pathway enrichment skipped " "(network or DB unavailable)")
+
+    def _annotate_drugs(self) -> None:
+        """Annotate results with drug-target mappings.
+
+        Adds druggability and known-target columns to
+        ``self.results``.
+        """
+        logger.info("Step 5/7: Drug-target annotation …")
+        self.results = self.drug_mapper.annotate(self.results)
+
+    def _score_resistance(self) -> None:
+        """Score resistance risk for each gene in results.
+
+        Adds a resistance-risk column to ``self.results``.
+        """
+        logger.info("Step 6/7: Resistance risk scoring …")
+        self.results = self.resistance.annotate(self.results)
+
+    def _sl_label(self, gene: str) -> str:
+        """Format synthetic-lethality partners as a display string.
+
+        Parameters
+        ----------
+        gene : str
+            Gene symbol to look up.
+
+        Returns
+        -------
+        str
+            Comma-separated partner list, or ``"—"`` if none.
+        """
+        partners = self.sl_detector.known_partners(gene)
+        return ", ".join(d["partner"] for d in partners) or "—"
+
+    def _annotate_network(self) -> None:
+        """Add network pharmacology and SL partner annotations.
+
+        Populates ``Strategic_Score`` and ``SL_Partners`` columns
+        on ``self.results``.
+        """
+        logger.info("Step 7/7: Network pharmacology & SL screening …")
+        genes = self.results["Gene"]
+        self.results["Strategic_Score"] = genes.apply(
+            self.network.strategic_score,
+        )
+        self.results["SL_Partners"] = genes.apply(self._sl_label)
 
     # ── public API ───────────────────────────────────────────────────────
 
     def run(self, X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
-        """
-        Execute the full fusion pipeline.
+        """Execute the full fusion pipeline.
 
         Parameters
         ----------
@@ -93,76 +261,62 @@ class FusionEngine:
             Ranked targets with columns:
             ``Gene | XGB_Importance | Instability | Fusion_Index``
         """
-        # Step 1 – XGBoost importance
-        logger.info("Step 1/4: Training XGBoost classifier …")
-        self.xgb.fit(X, y)
-        self.cv_metrics = self.xgb.cross_validate(X, y)
-        top = self.xgb.top_genes()
-
-        # Step 2 – Fetch sequences
-        logger.info("Step 2/4: Fetching gene sequences from NCBI …")
-        sequences: dict[str, str] = {}
-        for gene in top:
-            sequences[gene] = fetch_gene_sequence(gene, self.cfg)
-
-        # Step 3 – Instability scoring
-        logger.info("Step 3/4: Computing mutational instability …")
-        rows: list[dict[str, Any]] = []
-        for gene, importance in top.items():
-            seq = sequences[gene]
-            inst = self.instability.score(gene, seq)
-            fusion_index = importance * inst * 1000
-            rows.append(
-                {
-                    "Gene": gene,
-                    "XGB_Importance": round(importance, 6),
-                    "Instability": round(inst, 6),
-                    "Fusion_Index": round(fusion_index, 4),
-                    "Seq_Length": len(seq),
-                }
-            )
-            logger.info(
-                "  %s  imp=%.4f  inst=%.4f  fusion=%.4f",
-                gene,
-                importance,
-                inst,
-                fusion_index,
-            )
-
-        self.results = (
-            pd.DataFrame(rows)
-            .sort_values("Fusion_Index", ascending=False)
-            .reset_index(drop=True)
-        )
-
-        # Step 4 – Pathway enrichment
-        logger.info("Step 4/7: Pathway enrichment …")
-        try:
-            self.results = self.pathway.annotate(self.results)
-        except Exception:
-            logger.warning("Pathway enrichment skipped (network or DB unavailable)")
-
-        # Step 5 – Drug-target annotation
-        logger.info("Step 5/7: Drug-target annotation …")
-        self.results = self.drug_mapper.annotate(self.results)
-
-        # Step 6 – Resistance risk scoring
-        logger.info("Step 6/7: Resistance risk scoring …")
-        self.results = self.resistance.annotate(self.results)
-
-        # Step 7 – Network pharmacology & synthetic lethality
-        logger.info("Step 7/7: Network pharmacology & SL screening …")
-        self.results["Strategic_Score"] = self.results["Gene"].apply(
-            self.network.strategic_score
-        )
-        self.results["SL_Partners"] = self.results["Gene"].apply(
-            lambda g: ", ".join(
-                d["partner"] for d in self.sl_detector.known_partners(g)
-            )
-            or "—"
-        )
-
+        top = self._train_xgboost(X, y)
+        self._score_instability(top, self._fetch_sequences(top))
+        self._enrich_pathways()
+        self._annotate_drugs()
+        self._score_resistance()
+        self._annotate_network()
         return self.results
+
+    # ── summary helpers ──────────────────────────────────────────────────
+
+    def _ranking_row(self, row: pd.Series) -> str:
+        """Build a single ranking table row.
+
+        Parameters
+        ----------
+        row : pd.Series
+            Result row with ``Gene`` and ``Fusion_Index``.
+
+        Returns
+        -------
+        str
+            Formatted ASCII-art row.
+        """
+        fi = row["Fusion_Index"]
+        return f"║  {row['Gene']:<12}  Fusion Index: {fi:>8.4f}  ║"
+
+    def _build_ranking_lines(self) -> list[str]:
+        """Build the boxed ranking table lines.
+
+        Returns
+        -------
+        list[str]
+            Lines forming the ASCII-art ranking box.
+        """
+        hdr = [
+            "╔══════════════════════════════════════╗",
+            "║   FUSION ONCOLOGY – TARGET RANKING   ║",
+            "╠══════════════════════════════════════╣",
+        ]
+        hdr.extend(self._ranking_row(row) for _, row in self.results.iterrows())
+        hdr.append("╚══════════════════════════════════════╝")
+        return hdr
+
+    def _append_cv_metrics(self, lines: list[str]) -> None:
+        """Append cross-validation metrics to the summary lines.
+
+        Parameters
+        ----------
+        lines : list[str]
+            Mutable list of summary lines to extend.
+        """
+        if not self.cv_metrics:
+            return
+        mean = self.cv_metrics["mean_accuracy"]
+        std = self.cv_metrics["std_accuracy"]
+        lines.append(f"\nXGBoost CV accuracy: {mean:.4f} ± {std:.4f}")
 
     # ── convenience ──────────────────────────────────────────────────────
 
@@ -177,19 +331,6 @@ class FusionEngine:
         """
         if self.results.empty:
             return "No analysis has been run yet."
-        lines = [
-            "╔══════════════════════════════════════╗",
-            "║   FUSION ONCOLOGY – TARGET RANKING   ║",
-            "╠══════════════════════════════════════╣",
-        ]
-        for _, row in self.results.iterrows():
-            lines.append(
-                f"║  {row['Gene']:<12}  Fusion Index: {row['Fusion_Index']:>8.4f}  ║"
-            )
-        lines.append("╚══════════════════════════════════════╝")
-        if self.cv_metrics:
-            lines.append(
-                f"\nXGBoost CV accuracy: {self.cv_metrics['mean_accuracy']:.4f} "
-                f"± {self.cv_metrics['std_accuracy']:.4f}"
-            )
+        lines = self._build_ranking_lines()
+        self._append_cv_metrics(lines)
         return "\n".join(lines)

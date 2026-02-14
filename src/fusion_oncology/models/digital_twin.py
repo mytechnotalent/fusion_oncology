@@ -56,6 +56,41 @@ class DrugRegimen:
     cycle_on: int = 21
     cycle_off: int = 7
 
+    def _past_duration(self, day: int) -> bool:
+        """Check whether elapsed time exceeds drug duration.
+
+        Parameters
+        ----------
+        day : int
+            Simulation day.
+
+        Returns
+        -------
+        bool
+            ``True`` if drug has exceeded its duration.
+        """
+        elapsed = day - self.start_day
+        return elapsed >= self.duration_days
+
+    def _in_on_phase(self, day: int) -> bool:
+        """Check whether current day falls in the on-phase of a cycle.
+
+        Parameters
+        ----------
+        day : int
+            Simulation day.
+
+        Returns
+        -------
+        bool
+            ``True`` if drug is in its on-cycle phase.
+        """
+        elapsed = day - self.start_day
+        cycle_length = self.cycle_on + self.cycle_off
+        if cycle_length == 0:
+            return True
+        return (elapsed % cycle_length) < self.cycle_on
+
     def is_active(self, day: int) -> bool:
         """Return whether the drug is being administered on a given day.
 
@@ -73,14 +108,9 @@ class DrugRegimen:
         """
         if day < self.start_day:
             return False
-        elapsed = day - self.start_day
-        if elapsed >= self.duration_days:
+        if self._past_duration(day):
             return False
-        cycle_length = self.cycle_on + self.cycle_off
-        if cycle_length == 0:
-            return True
-        position_in_cycle = elapsed % cycle_length
-        return position_in_cycle < self.cycle_on
+        return self._in_on_phase(day)
 
 
 @dataclass
@@ -276,6 +306,240 @@ class DigitalTwin:
                 total += reg.resistance_rate
         return total
 
+    def _init_populations(
+        self,
+    ) -> tuple[float, float, float, float]:
+        """Initialise cell populations and clear trajectory.
+
+        Returns
+        -------
+        tuple[float, float, float, float]
+            Sensitive, resistant, immune counts and initial total.
+        """
+        self._trajectory.clear()
+        frac = self.sim.resistant_fraction
+        s = self.sim.initial_tumour_size * (1 - frac)
+        r = self.sim.initial_tumour_size * frac
+        return s, r, 1e6, s + r
+
+    def _should_record(self, day: float) -> bool:
+        """Check if current time step is close to an integer day.
+
+        Parameters
+        ----------
+        day : float
+            Current simulation time.
+
+        Returns
+        -------
+        bool
+            ``True`` if *day* is close to an integer day.
+        """
+        return abs(day - round(day)) < self.sim.dt / 2 and round(day) >= 0
+
+    def _record_state(
+        self,
+        day: float,
+        s: float,
+        r: float,
+        immune: float,
+    ) -> None:
+        """Append a TumourState snapshot to the trajectory.
+
+        Parameters
+        ----------
+        day : float
+            Current simulation time.
+        s : float
+            Sensitive cell count.
+        r : float
+            Resistant cell count.
+        immune : float
+            Immune cell count.
+        """
+        state = TumourState(
+            day=int(round(day)),
+            sensitive=max(0, s),
+            resistant=max(0, r),
+            immune=max(0, immune),
+        )
+        self._trajectory.append(state)
+
+    def _step_sensitive(
+        self,
+        s: float,
+        immune: float,
+        day: int,
+    ) -> float:
+        """Advance sensitive cell population by one Euler step.
+
+        Parameters
+        ----------
+        s : float
+            Sensitive cell count.
+        immune : float
+            Immune cell count.
+        day : int
+            Current simulation day (integer).
+
+        Returns
+        -------
+        float
+            Updated sensitive cell count.
+        """
+        kill = self._drug_kill_rate(day)
+        resist = self._resistance_conversion_rate(day)
+        ik = self.sim.immune_kill_rate
+        change = self._growth_rate(s) - kill * s - ik * immune * s - resist * s
+        return max(0, s + change * self.sim.dt)
+
+    def _step_resistant(
+        self,
+        s: float,
+        r: float,
+        immune: float,
+        day: int,
+    ) -> float:
+        """Advance resistant cell population by one Euler step.
+
+        Parameters
+        ----------
+        s : float
+            Updated sensitive cell count.
+        r : float
+            Resistant cell count.
+        immune : float
+            Immune cell count.
+        day : int
+            Current simulation day (integer).
+
+        Returns
+        -------
+        float
+            Updated resistant cell count.
+        """
+        resist = self._resistance_conversion_rate(day)
+        ik = self.sim.immune_kill_rate
+        change = self._growth_rate(r) - ik * immune * r * 0.3 + resist * max(0, s)
+        return max(0, r + change * self.sim.dt)
+
+    def _step_immune(
+        self,
+        s: float,
+        r: float,
+        immune: float,
+    ) -> float:
+        """Advance immune cell population by one Euler step.
+
+        Parameters
+        ----------
+        s : float
+            Updated sensitive cell count.
+        r : float
+            Updated resistant cell count.
+        immune : float
+            Immune cell count.
+
+        Returns
+        -------
+        float
+            Updated immune cell count.
+        """
+        recruit = self.sim.immune_recruitment * (s + r)
+        exhaust = self.sim.immune_exhaustion * immune
+        return max(0, immune + (recruit - exhaust) * self.sim.dt)
+
+    def _simulation_step(
+        self,
+        s: float,
+        r: float,
+        immune: float,
+        day: float,
+    ) -> tuple[float, float, float]:
+        """Execute one simulation step: record state and advance ODEs.
+
+        Parameters
+        ----------
+        s : float
+            Sensitive cell count.
+        r : float
+            Resistant cell count.
+        immune : float
+            Immune cell count.
+        day : float
+            Current simulation time.
+
+        Returns
+        -------
+        tuple[float, float, float]
+            Updated (sensitive, resistant, immune) counts.
+        """
+        if self._should_record(day):
+            self._record_state(day, s, r, immune)
+        s = self._step_sensitive(s, immune, int(day))
+        r = self._step_resistant(s, r, immune, int(day))
+        immune = self._step_immune(s, r, immune)
+        return s, r, immune
+
+    def _build_trajectory_df(
+        self,
+        initial_total: float,
+    ) -> pd.DataFrame:
+        """Convert trajectory to a DataFrame with response percentage.
+
+        Parameters
+        ----------
+        initial_total : float
+            Initial tumour burden for response calculation.
+
+        Returns
+        -------
+        pd.DataFrame
+            Trajectory data with ``response_pct`` column.
+        """
+        df = pd.DataFrame([vars(st) for st in self._trajectory])
+        if not df.empty:
+            resp = (initial_total - df["total"]) / initial_total * 100
+            df["response_pct"] = resp.round(2)
+        return df
+
+    def _log_simulation(self, df: pd.DataFrame) -> None:
+        """Log summary of simulation results.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Simulation trajectory DataFrame.
+        """
+        final = df["total"].iloc[-1] if not df.empty else 0
+        resp = df["response_pct"].iloc[-1] if not df.empty else 0
+        logger.info(
+            "Simulation complete: %d days, final tumour %.2e (%.1f%% response)",
+            self.sim.simulation_days,
+            final,
+            resp,
+        )
+
+    def _finalize_simulation(
+        self,
+        initial_total: float,
+    ) -> pd.DataFrame:
+        """Build trajectory DataFrame and log results.
+
+        Parameters
+        ----------
+        initial_total : float
+            Initial tumour burden for response calculation.
+
+        Returns
+        -------
+        pd.DataFrame
+            Simulation results.
+        """
+        df = self._build_trajectory_df(initial_total)
+        self._log_simulation(df)
+        return df
+
     def simulate(self) -> pd.DataFrame:
         """Run the tumour growth simulation.
 
@@ -300,86 +564,12 @@ class DigitalTwin:
             Columns: ``day``, ``sensitive``, ``resistant``, ``immune``,
             ``total``, ``response_pct``.
         """
-        self._trajectory.clear()
-        dt = self.sim.dt
-
-        # Initial conditions
-        s = self.sim.initial_tumour_size * (1 - self.sim.resistant_fraction)
-        r = self.sim.initial_tumour_size * self.sim.resistant_fraction
-        immune = 1e6  # baseline immune cells
-        initial_total = s + r
-
-        n_steps = int(self.sim.simulation_days / dt)
-
+        s, r, immune, initial_total = self._init_populations()
+        n_steps = int(self.sim.simulation_days / self.sim.dt)
         for step in range(n_steps + 1):
-            day = step * dt
-
-            # Record at integer days
-            if abs(day - round(day)) < dt / 2 and round(day) >= 0:
-                state = TumourState(
-                    day=int(round(day)),
-                    sensitive=max(0, s),
-                    resistant=max(0, r),
-                    immune=max(0, immune),
-                )
-                self._trajectory.append(state)
-
-            # Rates
-            kill = self._drug_kill_rate(int(day))
-            resist_conv = self._resistance_conversion_rate(int(day))
-            immune_kill = self.sim.immune_kill_rate
-
-            # Sensitive cells
-            ds = (
-                self._growth_rate(s)  # growth
-                - kill * s  # drug killing
-                - immune_kill * immune * s  # immune killing
-                - resist_conv * s  # resistance conversion
-            ) * dt
-            s = max(0, s + ds)
-
-            # Resistant cells
-            dr = (
-                self._growth_rate(r)  # growth
-                - immune_kill * immune * r * 0.3  # partial immune kill
-                + resist_conv * max(0, s)  # gain from sensitive
-            ) * dt
-            r = max(0, r + dr)
-
-            # Immune cells
-            di = (
-                self.sim.immune_recruitment * (s + r)  # tumour-driven recruitment
-                - self.sim.immune_exhaustion * immune  # exhaustion
-            ) * dt
-            immune = max(0, immune + di)
-
-        # Build DataFrame
-        df = pd.DataFrame(
-            [
-                {
-                    "day": st.day,
-                    "sensitive": st.sensitive,
-                    "resistant": st.resistant,
-                    "immune": st.immune,
-                    "total": st.total,
-                }
-                for st in self._trajectory
-            ]
-        )
-
-        if not df.empty:
-            df["response_pct"] = (
-                (initial_total - df["total"]) / initial_total * 100
-            ).round(2)
-
-        logger.info(
-            "Simulation complete: %d days, final tumour %.2e (%.1f%% response)",
-            self.sim.simulation_days,
-            df["total"].iloc[-1] if not df.empty else 0,
-            df["response_pct"].iloc[-1] if not df.empty else 0,
-        )
-
-        return df
+            day = step * self.sim.dt
+            s, r, immune = self._simulation_step(s, r, immune, day)
+        return self._finalize_simulation(initial_total)
 
     @property
     def trajectory(self) -> list[TumourState]:
@@ -392,6 +582,35 @@ class DigitalTwin:
         """
         return self._trajectory
 
+    def _empty_best_response(self) -> dict[str, Any]:
+        """Return default best-response dict for empty trajectory.
+
+        Returns
+        -------
+        dict[str, Any]
+            Default response with zero values.
+        """
+        return {"day": 0, "total": 0, "response_pct": 0}
+
+    def _compute_best_response(self) -> dict[str, Any]:
+        """Compute best response metrics from trajectory.
+
+        Returns
+        -------
+        dict[str, Any]
+            Best response day, total, percentage, and populations.
+        """
+        initial = self._trajectory[0].total
+        best = min(self._trajectory, key=lambda s: s.total)
+        pct = round((initial - best.total) / max(initial, 1) * 100, 2)
+        return {
+            "day": best.day,
+            "total": best.total,
+            "response_pct": pct,
+            "sensitive": best.sensitive,
+            "resistant": best.resistant,
+        }
+
     def best_response(self) -> dict[str, Any]:
         """Find the time point of maximum treatment response.
 
@@ -402,19 +621,29 @@ class DigitalTwin:
             ``sensitive``, ``resistant``.
         """
         if not self._trajectory:
-            return {"day": 0, "total": 0, "response_pct": 0}
+            return self._empty_best_response()
+        return self._compute_best_response()
 
-        initial = self._trajectory[0].total
-        best = min(self._trajectory, key=lambda s: s.total)
-        response = (initial - best.total) / max(initial, 1) * 100
+    def _classify_recist(self, change: float) -> str:
+        """Classify RECIST category from percentage change.
 
-        return {
-            "day": best.day,
-            "total": best.total,
-            "response_pct": round(response, 2),
-            "sensitive": best.sensitive,
-            "resistant": best.resistant,
-        }
+        Parameters
+        ----------
+        change : float
+            Percentage change in tumour burden from baseline.
+
+        Returns
+        -------
+        str
+            One of ``"CR"``, ``"PR"``, ``"SD"``, ``"PD"``.
+        """
+        if change <= -99:
+            return "CR"
+        if change <= -30:
+            return "PR"
+        if change >= 20:
+            return "PD"
+        return "SD"
 
     def recist_response(self) -> str:
         """Classify treatment response using RECIST-like criteria.
@@ -432,19 +661,78 @@ class DigitalTwin:
         """
         if not self._trajectory:
             return "SD"
-
         initial = self._trajectory[0].total
-        # Use best response during treatment
         nadir = min(s.total for s in self._trajectory)
         change = (nadir - initial) / max(initial, 1) * 100
+        return self._classify_recist(change)
 
-        if change <= -99:
-            return "CR"
-        if change <= -30:
-            return "PR"
-        if change >= 20:
-            return "PD"
-        return "SD"
+    def _load_regimens(
+        self,
+        regimens: list[DrugRegimen],
+    ) -> None:
+        """Clear current regimens and load a new set.
+
+        Parameters
+        ----------
+        regimens : list[DrugRegimen]
+            Drug regimens to load.
+        """
+        self._regimens.clear()
+        for reg in regimens:
+            self.add_regimen(reg)
+
+    def _simulate_regimen_set(
+        self,
+        label: str,
+        regimens: list[DrugRegimen],
+    ) -> dict[str, Any]:
+        """Simulate a single regimen set and return summary metrics.
+
+        Parameters
+        ----------
+        label : str
+            Name for this regimen set.
+        regimens : list[DrugRegimen]
+            Drug regimens to simulate.
+
+        Returns
+        -------
+        dict[str, Any]
+            Summary metrics including RECIST classification.
+        """
+        self._load_regimens(regimens)
+        df = self.simulate()
+        best = self.best_response()
+        final = df["total"].iloc[-1] if not df.empty else 0
+        return {
+            "regimen": label,
+            "best_response_day": best["day"],
+            "best_response_pct": best["response_pct"],
+            "final_tumour": final,
+            "recist": self.recist_response(),
+        }
+
+    def _build_comparison_df(
+        self,
+        results: list[dict[str, Any]],
+    ) -> pd.DataFrame:
+        """Build sorted comparison DataFrame from regimen results.
+
+        Parameters
+        ----------
+        results : list[dict[str, Any]]
+            List of per-regimen summary dicts.
+
+        Returns
+        -------
+        pd.DataFrame
+            Sorted comparison table.
+        """
+        return (
+            pd.DataFrame(results)
+            .sort_values("best_response_pct", ascending=False)
+            .reset_index(drop=True)
+        )
 
     def compare_regimens(
         self,
@@ -466,33 +754,30 @@ class DigitalTwin:
             Columns: ``regimen``, ``best_response_day``,
             ``best_response_pct``, ``final_tumour``, ``recist``.
         """
-        results: list[dict[str, Any]] = []
+        results = [
+            self._simulate_regimen_set(label, regs)
+            for label, regs in regimen_sets.items()
+        ]
+        return self._build_comparison_df(results)
 
-        for label, regimens in regimen_sets.items():
-            # Reset
-            self._regimens.clear()
-            for reg in regimens:
-                self.add_regimen(reg)
+    def _summary_dict(self) -> dict[str, Any]:
+        """Assemble the summary dict for the last simulation.
 
-            df = self.simulate()
-            best = self.best_response()
-            recist = self.recist_response()
-
-            results.append(
-                {
-                    "regimen": label,
-                    "best_response_day": best["day"],
-                    "best_response_pct": best["response_pct"],
-                    "final_tumour": df["total"].iloc[-1] if not df.empty else 0,
-                    "recist": recist,
-                }
-            )
-
-        return (
-            pd.DataFrame(results)
-            .sort_values("best_response_pct", ascending=False)
-            .reset_index(drop=True)
-        )
+        Returns
+        -------
+        dict[str, Any]
+            Complete summary with all metrics.
+        """
+        fin = self._trajectory[-1].total if self._trajectory else 0
+        return {
+            "simulation_days": self.sim.simulation_days,
+            "initial_tumour": self.sim.initial_tumour_size,
+            "final_tumour": fin,
+            "best_response": self.best_response(),
+            "recist": self.recist_response(),
+            "n_regimens": len(self._regimens),
+            "regimen_names": [r.name for r in self._regimens],
+        }
 
     def summary(self) -> dict[str, Any]:
         """Return a summary of the last simulation run.
@@ -504,13 +789,4 @@ class DigitalTwin:
             ``final_tumour``, ``best_response``, ``recist``,
             ``n_regimens``, ``regimen_names``.
         """
-        best = self.best_response()
-        return {
-            "simulation_days": self.sim.simulation_days,
-            "initial_tumour": self.sim.initial_tumour_size,
-            "final_tumour": (self._trajectory[-1].total if self._trajectory else 0),
-            "best_response": best,
-            "recist": self.recist_response(),
-            "n_regimens": len(self._regimens),
-            "regimen_names": [r.name for r in self._regimens],
-        }
+        return self._summary_dict()
