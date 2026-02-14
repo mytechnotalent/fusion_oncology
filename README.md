@@ -78,16 +78,17 @@ fusion-oncology report results/fusion_results.csv
 
 ### 📊 Kaggle Integration
 
-Run on **Kaggle** with 11,000+ TCGA samples:
+Run on **Kaggle** with the **GDSC dataset** (1,000+ cancer cell lines):
 
 ```bash
 # Upload kaggle_notebook.ipynb to Kaggle
-# Or use any TCGA dataset directly:
+# Add GDSC dataset from: kaggle.com/datasets/samiraalipour/genomics-of-drug-sensitivity-in-cancer-gdsc
+# Then run the notebook or use CLI:
 !pip install git+https://github.com/mytechnotalent/fusion_oncology.git
 !fusion-oncology run --top-k 10 --output-dir /kaggle/working/results
 ```
 
-**See**: [KAGGLE_GUIDE.md](KAGGLE_GUIDE.md) for dataset recommendations and examples
+**See**: [KAGGLE_GUIDE.md](KAGGLE_GUIDE.md) for complete GDSC setup and alternative datasets
 
 ---
 

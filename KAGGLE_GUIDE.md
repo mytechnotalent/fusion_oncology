@@ -14,19 +14,90 @@ Quick guide to running Fusion Oncology on Kaggle datasets.
 ### Option 2: Command Line in Kaggle
 
 ```python
-# Install
+# Install (with numpy compatibility fix)
+!pip install -q "numpy<2.2" --force-reinstall
 !pip install -q git+https://github.com/mytechnotalent/fusion_oncology.git
 
-# Run quick analysis
-from fusion_oncology.cli import main
+# IMPORTANT: Restart kernel after installation, then run:
 !fusion-oncology run --top-k 5 --fuzz-iterations 10 --output-dir /kaggle/working/results
 ```
 
+**Note:** If you see numpy/scipy errors, restart the kernel after installation.
+
 ## Compatible Kaggle Datasets
 
-### � How to Find TCGA Datasets on Kaggle
+### 🏆 RECOMMENDED: Genomics of Drug Sensitivity in Cancer (GDSC)
 
-**Search on Kaggle**: Go to [kaggle.com/datasets](https://www.kaggle.com/datasets) and search for:
+**The BEST dataset for Fusion Oncology** - verified and tested!
+
+**Kaggle Link:** [kaggle.com/datasets/samiraalipour/genomics-of-drug-sensitivity-in-cancer-gdsc](https://www.kaggle.com/datasets/samiraalipour/genomics-of-drug-sensitivity-in-cancer-gdsc)
+
+**Why it's perfect:**
+- ✅ **1000+ cancer cell lines** across multiple cancer types
+- ✅ **Gene expression + mutations + copy number variations**
+- ✅ **Drug sensitivity data (IC50 values)** - validate your predictions!
+- ✅ **Perfect usability: 10.0/10** (4,617 downloads, 120 upvotes)
+- ✅ **4 clean files** ready for analysis
+- ✅ **Multi-omics** - showcases all Fusion Oncology features
+
+**Quick start with GDSC:**
+```python
+# After adding GDSC dataset to your Kaggle notebook
+import pandas as pd
+import numpy as np
+
+# Load all GDSC files (exact paths):
+gdsc_main = "/kaggle/input/genomics-of-drug-sensitivity-in-cancer-gdsc/GDSC_DATASET.csv"
+cell_lines = "/kaggle/input/genomics-of-drug-sensitivity-in-cancer-gdsc/Cell_Lines_Details.xlsx"
+gdsc2 = "/kaggle/input/genomics-of-drug-sensitivity-in-cancer-gdsc/GDSC2-dataset.csv"
+compounds = "/kaggle/input/genomics-of-drug-sensitivity-in-cancer-gdsc/Compounds-annotation.csv"
+
+# Load main dataset
+df = pd.read_csv(gdsc_main)
+
+# Extract tissue types and features
+y = df['TCGA_DESC'].dropna()  # Cancer tissue classification
+numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+X = df.loc[y.index, numeric_cols]  # Feature matrix
+
+print(f"✓ Loaded {len(X)} samples x {X.shape[1]} features")
+print(f"✓ Cancer types: {y.nunique()}")
+```
+
+**What makes GDSC special:**
+- Compare your drug recommendations against **actual drug sensitivity** (IC50 values)
+- Identify genomic biomarkers that correlate with drug response
+- Multi-cancer analysis showcases pan-cancer classification
+- Pathway-level drug targeting information included
+
+---
+
+### 🔥 Other Dataset Options
+
+#### 1. **Built-in UCI Dataset** (Default - No Upload Needed)
+
+#### 1. **Built-in UCI Dataset** (Default - No Upload Needed)
+- 801 samples, 5 cancer types (BRCA, KIRC, COAD, LUAD, PRAD)
+- Works directly with built-in ingestion - **no Kaggle upload needed**
+- From UCI ML Repository: https://archive.ics.uci.edu/dataset/401/gene+expression+cancer+rna+seq
+```python
+from fusion_oncology.data.ingestion import DataIngestion
+from fusion_oncology.config import ProjectConfig
+
+cfg = ProjectConfig()
+ingestor = DataIngestion(cfg)
+X, y = ingestor.get_patient_data()
+```
+
+#### 2. **BRCA Multi-Omics (TCGA)**
+**Link:** [kaggle.com/datasets/samdemharter/brca-multiomics-tcga](https://www.kaggle.com/datasets/samdemharter/brca-multiomics-tcga)
+- 705 breast cancer samples
+- Mutations, copy numbers, gene expression, protein levels
+- 2,894 downloads, 31 upvotes
+- ⚠️ Only breast cancer (single type)
+
+#### 3. **Search Kaggle for More**
+Go to [kaggle.com/datasets](https://www.kaggle.com/datasets) and search:
 - `"TCGA gene expression"`
 - `"TCGA RNA-seq"`
 - `"cancer genome atlas"`
@@ -37,37 +108,6 @@ Look for datasets with:
 - ✅ Cancer type labels
 - ✅ 500+ samples for robust analysis
 - ✅ CSV/TSV format
-
-### 🔥 Recommended Dataset Types
-
-1. **TCGA Pan-Cancer** (Largest - search "TCGA pan-cancer")
-   - Look for datasets with 10,000+ samples across multiple cancer types
-   - Best for comprehensive multi-cancer analysis
-   - Example structure:
-   ```python
-   # After adding dataset to your Kaggle notebook
-   import pandas as pd
-   X = pd.read_csv('/kaggle/input/[dataset-name]/[expression-file].csv', index_col=0)
-   y = pd.read_csv('/kaggle/input/[dataset-name]/[labels-file].csv').squeeze()
-   ```
-
-2. **Gene Expression Cancer RNA-Seq** (Default Compatible - search "gene expression cancer RNA")
-   - 801 samples, 5 cancer types (BRCA, KIRC, COAD, LUAD, PRAD)
-   - Works directly with built-in ingestion
-   - This is the UCI ML Repository dataset already integrated
-   ```python
-   from fusion_oncology.data.ingestion import DataIngestion
-   from fusion_oncology.config import ProjectConfig
-   
-   cfg = ProjectConfig()
-   ingestor = DataIngestion(cfg)
-   X, y = ingestor.get_patient_data()
-   ```
-
-3. **Cancer-Specific TCGA** (search "TCGA breast", "TCGA lung", etc.)
-   - Single cancer type deep dives
-   - Usually 500-2000 samples per cancer type
-   - Good for focused analysis
 
 ### 🌐 Alternative: Use Official TCGA Data Sources
 
