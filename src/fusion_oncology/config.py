@@ -47,6 +47,16 @@ class ProjectConfig:
         Number of boosting rounds for the XGBoost classifier.
     xgb_max_depth : int
         Maximum tree depth for XGBoost.
+    xgb_learning_rate : float
+        Gradient-descent step size for XGBoost boosting.
+    xgb_min_child_weight : int
+        Minimum sum of instance weight in a child node.
+    xgb_gamma : float
+        Minimum loss reduction required to make a further partition.
+    xgb_reg_alpha : float
+        L1 regularisation term on weights.
+    xgb_reg_lambda : float
+        L2 regularisation term on weights.
     pathway_db : str
         Pathway database selector (``"kegg"`` or ``"reactome"``).
     enrichment_pval : float
@@ -107,8 +117,13 @@ class ProjectConfig:
     # ── Analysis hyper-parameters ────────────────────────────────────────
     top_k_genes: int = 5
     fuzz_iterations: int = 20
-    xgb_n_estimators: int = 50
-    xgb_max_depth: int = 4
+    xgb_n_estimators: int = 500
+    xgb_max_depth: int = 8
+    xgb_learning_rate: float = 0.05
+    xgb_min_child_weight: int = 3
+    xgb_gamma: float = 0.1
+    xgb_reg_alpha: float = 0.1
+    xgb_reg_lambda: float = 1.5
 
     # ── Pathway enrichment ───────────────────────────────────────────────
     pathway_db: str = "kegg"  # "kegg" | "reactome"

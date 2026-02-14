@@ -58,9 +58,14 @@ class XGBoostEngine:
         return xgb.XGBClassifier(
             n_estimators=self.cfg.xgb_n_estimators,
             max_depth=self.cfg.xgb_max_depth,
-            learning_rate=0.1,
+            learning_rate=self.cfg.xgb_learning_rate,
+            min_child_weight=self.cfg.xgb_min_child_weight,
+            gamma=self.cfg.xgb_gamma,
             subsample=0.8,
             colsample_bytree=0.8,
+            colsample_bylevel=0.7,
+            reg_alpha=self.cfg.xgb_reg_alpha,
+            reg_lambda=self.cfg.xgb_reg_lambda,
             objective="multi:softprob",
             eval_metric="mlogloss",
             use_label_encoder=False,
@@ -69,6 +74,23 @@ class XGBoostEngine:
         )
 
     # ── training ─────────────────────────────────────────────────────────
+
+    def _compute_sample_weights(self, y_enc: np.ndarray) -> np.ndarray:
+        """Compute balanced sample weights inversely proportional to class frequency.
+
+        Parameters
+        ----------
+        y_enc : np.ndarray
+            Integer-encoded label array.
+
+        Returns
+        -------
+        np.ndarray
+            Per-sample weight array.
+        """
+        classes, counts = np.unique(y_enc, return_counts=True)
+        weight_map = {c: len(y_enc) / (len(classes) * n) for c, n in zip(classes, counts)}
+        return np.array([weight_map[label] for label in y_enc])
 
     def fit(self, X: pd.DataFrame, y: pd.Series) -> "XGBoostEngine":
         """Train XGBoost on the expression matrix.
@@ -88,7 +110,8 @@ class XGBoostEngine:
         self._feature_names = list(X_num.columns)
         y_enc = self.label_encoder.fit_transform(y)
         self.model = self._build_classifier()
-        self.model.fit(X_num, y_enc)
+        weights = self._compute_sample_weights(y_enc)
+        self.model.fit(X_num, y_enc, sample_weight=weights)
         n, d = self.cfg.xgb_n_estimators, self.cfg.xgb_max_depth
         logger.info("XGBoost fitted  (%d trees, depth %d)", n, d)
         return self
@@ -113,31 +136,64 @@ class XGBoostEngine:
         return LabelEncoder().fit_transform(y)
 
     def _build_cv_classifier(self) -> xgb.XGBClassifier:
-        """Build a lightweight XGBoost classifier for CV scoring.
+        """Build XGBoost classifier for CV scoring.
+
+        Uses the same hyperparameters as the production classifier
+        so that CV metrics reflect real-world performance.
 
         Returns
         -------
         xgb.XGBClassifier
-            Un-fitted classifier with minimal logging.
+            Un-fitted classifier.
         """
-        return xgb.XGBClassifier(
-            n_estimators=self.cfg.xgb_n_estimators,
-            max_depth=self.cfg.xgb_max_depth,
-            verbosity=0,
-            use_label_encoder=False,
-            n_jobs=-1,
-        )
+        return self._build_classifier()
 
     @staticmethod
     def _summarise(scores: np.ndarray) -> tuple[float, float]:
         """Return (mean, std) for a per-fold score array."""
         return float(np.mean(scores)), float(np.std(scores))
 
+    @staticmethod
+    def _cv_metric_map() -> dict[str, str]:
+        """Return the mapping from short metric names to scorer keys.
+
+        Returns
+        -------
+        dict[str, str]
+            Keys are display names, values are scorer dict keys.
+        """
+        return {
+            "accuracy": "accuracy",
+            "precision": "precision_weighted",
+            "recall": "recall_weighted",
+            "f1": "f1_weighted",
+            "f2": "f2_weighted",
+            "roc_auc": "roc_auc_ovr_weighted",
+        }
+
+    def _log_cv_summary(self, result: dict[str, float]) -> None:
+        """Log a one-line summary of cross-validation metrics.
+
+        Parameters
+        ----------
+        result : dict[str, float]
+            Metric dictionary with ``mean_<metric>`` keys.
+        """
+        logger.info(
+            "CV  acc=%.4f  prec=%.4f  rec=%.4f  f1=%.4f  f2=%.4f  auc=%.4f",
+            result["mean_accuracy"],
+            result["mean_precision"],
+            result["mean_recall"],
+            result["mean_f1"],
+            result["mean_f2"],
+            result["mean_roc_auc"],
+        )
+
     def _compute_cv_metrics(
         self,
         cv_results: dict[str, np.ndarray],
     ) -> dict[str, float]:
-        """Compute mean ± std for all six evaluation metrics.
+        """Compute mean and std for all six evaluation metrics.
 
         Parameters
         ----------
@@ -156,32 +212,114 @@ class XGBoostEngine:
             ``mean_roc_auc``, ``std_roc_auc``.
         """
         result: dict[str, float] = {}
-        metric_map = {
-            "accuracy": "accuracy",
-            "precision": "precision_weighted",
-            "recall": "recall_weighted",
-            "f1": "f1_weighted",
-            "f2": "f2_weighted",
-            "roc_auc": "roc_auc_ovr_weighted",
-        }
-        for short_name, scorer_key in metric_map.items():
+        for short_name, scorer_key in self._cv_metric_map().items():
             arr = cv_results.get(f"test_{scorer_key}", np.array([np.nan]))
             mean, std = self._summarise(arr)
             result[f"mean_{short_name}"] = mean
             result[f"std_{short_name}"] = std
-
-        logger.info(
-            "CV  acc=%.4f  prec=%.4f  rec=%.4f  " "f1=%.4f  f2=%.4f  auc=%.4f",
-            result["mean_accuracy"],
-            result["mean_precision"],
-            result["mean_recall"],
-            result["mean_f1"],
-            result["mean_f2"],
-            result["mean_roc_auc"],
-        )
+        self._log_cv_summary(result)
         return result
 
     # ── evaluation ───────────────────────────────────────────────────────
+
+    def _filter_rare_classes(
+        self,
+        X_num: pd.DataFrame,
+        y: pd.Series,
+        folds: int,
+    ) -> tuple[pd.DataFrame, pd.Series]:
+        """Remove classes with fewer samples than the fold count.
+
+        Parameters
+        ----------
+        X_num : pd.DataFrame
+            Numeric feature matrix.
+        y : pd.Series
+            Cancer-type labels.
+        folds : int
+            Number of CV folds (minimum class size).
+
+        Returns
+        -------
+        tuple[pd.DataFrame, pd.Series]
+            Filtered ``(X_num, y)`` pair.
+        """
+        class_counts = y.value_counts()
+        rare = class_counts[class_counts < folds].index
+        if not len(rare):
+            return X_num, y
+        logger.info("Filtering %d rare classes (< %d samples)", len(rare), folds)
+        mask = ~y.isin(rare)
+        return X_num.loc[mask], y.loc[mask]
+
+    def _build_scoring_dict(self) -> dict:
+        """Build the scoring dictionary for cross-validation.
+
+        Returns
+        -------
+        dict
+            Mapping of scorer names to scorer objects.
+        """
+        precision_scorer = make_scorer(precision_score, average="weighted", zero_division=0)
+        recall_scorer = make_scorer(recall_score, average="weighted", zero_division=0)
+        f1_scorer = make_scorer(f1_score, average="weighted", zero_division=0)
+        f2_scorer = make_scorer(fbeta_score, beta=2, average="weighted", zero_division=0)
+        return {
+            "accuracy": "accuracy",
+            "precision_weighted": precision_scorer,
+            "recall_weighted": recall_scorer,
+            "f1_weighted": f1_scorer,
+            "f2_weighted": f2_scorer,
+            "roc_auc_ovr_weighted": "roc_auc_ovr_weighted",
+        }
+
+    @staticmethod
+    def _add_cv_warning_filters(warn_mod: Any) -> None:
+        """Register warning filters for cross-validation scoring.
+
+        Parameters
+        ----------
+        warn_mod : module
+            The ``warnings`` module reference.
+        """
+        warn_mod.filterwarnings("ignore", category=UserWarning)
+        warn_mod.filterwarnings("ignore", message=".*Precision is ill-defined.*")
+        try:
+            from sklearn.exceptions import UndefinedMetricWarning
+
+            warn_mod.filterwarnings("ignore", category=UndefinedMetricWarning)
+        except ImportError:
+            pass
+
+    @staticmethod
+    def _run_cv(clf, X, y, skf, scoring, fit_params) -> dict:
+        """Execute sklearn cross_validate with warning suppression.
+
+        Parameters
+        ----------
+        clf : xgb.XGBClassifier
+            Un-fitted classifier.
+        X : pd.DataFrame
+            Numeric feature matrix.
+        y : np.ndarray
+            Encoded labels.
+        skf : StratifiedKFold
+            Cross-validation splitter.
+        scoring : dict
+            Scorer mapping.
+        fit_params : dict
+            Parameters forwarded to ``clf.fit()``.
+
+        Returns
+        -------
+        dict
+            Raw cross_validate output.
+        """
+        import warnings as _w
+
+        with _w.catch_warnings():
+            XGBoostEngine._add_cv_warning_filters(_w)
+            return sklearn_cv(clf, X, y, cv=skf, scoring=scoring, params=fit_params)
 
     def cross_validate(
         self,
@@ -194,7 +332,7 @@ class XGBoostEngine:
         Parameters
         ----------
         X : pd.DataFrame
-            Feature matrix (samples × genes).  Only numeric columns
+            Feature matrix (samples x genes).  Only numeric columns
             are used.
         y : pd.Series
             Cancer-type labels aligned with *X* rows.
@@ -206,56 +344,29 @@ class XGBoostEngine:
         dict[str, float]
             Keys ``mean_accuracy`` and ``std_accuracy``.
         """
-        X_num = X.select_dtypes(include=[np.number])
-
-        # Filter out classes with fewer samples than folds to prevent
-        # XGBoost label-mismatch errors when a class is absent from a
-        # training fold.
-        class_counts = y.value_counts()
-        rare = class_counts[class_counts < folds].index
-        if len(rare):
-            logger.info(
-                "Filtering %d rare classes (< %d samples) for CV: %s",
-                len(rare),
-                folds,
-                list(rare)[:5],
-            )
-            mask = ~y.isin(rare)
-            X_num = X_num.loc[mask]
-            y = y.loc[mask]
-
-        # Re-encode to contiguous 0..N-1 for the filtered subset
-        le = LabelEncoder()
-        y_enc = le.fit_transform(y)
-
+        X_num, y = self._filter_rare_classes(X.select_dtypes(include=[np.number]), y, folds)
+        y_enc = LabelEncoder().fit_transform(y)
         skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
         clf = self._build_cv_classifier()
-
-        precision_scorer = make_scorer(precision_score, average="weighted", zero_division=0)
-        recall_scorer = make_scorer(recall_score, average="weighted", zero_division=0)
-        f1_scorer = make_scorer(f1_score, average="weighted", zero_division=0)
-        f2_scorer = make_scorer(
-            fbeta_score,
-            beta=2,
-            average="weighted",
-            zero_division=0,
-        )
-        scoring = {
-            "accuracy": "accuracy",
-            "precision_weighted": precision_scorer,
-            "recall_weighted": recall_scorer,
-            "f1_weighted": f1_scorer,
-            "f2_weighted": f2_scorer,
-            "roc_auc_ovr_weighted": "roc_auc_ovr_weighted",
-        }
-        cv_results = sklearn_cv(clf, X_num, y_enc, cv=skf, scoring=scoring)
+        fit_params = {"sample_weight": self._compute_sample_weights(y_enc)}
+        cv_results = self._run_cv(clf, X_num, y_enc, skf, self._build_scoring_dict(), fit_params)
         return self._compute_cv_metrics(cv_results)
 
     # ── importance ───────────────────────────────────────────────────────
 
-    def top_genes(self, k: int | None = None) -> dict[str, float]:
+    def _check_fitted(self) -> None:
+        """Raise ``RuntimeError`` if the model has not been fitted.
+
+        Raises
+        ------
+        RuntimeError
+            When ``self.model`` is ``None``.
         """
-        Return the *k* most important genes by XGBoost gain score.
+        if self.model is None:
+            raise RuntimeError("Model not fitted yet – call .fit() first")
+
+    def top_genes(self, k: int | None = None) -> dict[str, float]:
+        """Return the *k* most important genes by XGBoost gain score.
 
         Parameters
         ----------
@@ -267,8 +378,7 @@ class XGBoostEngine:
         dict
             Ordered mapping ``{gene_name: importance_score}``.
         """
-        if self.model is None:
-            raise RuntimeError("Model not fitted yet – call .fit() first")
+        self._check_fitted()
         k = k or self.cfg.top_k_genes
         importances = self.model.feature_importances_
         indices = np.argsort(importances)[::-1][:k]
@@ -290,8 +400,7 @@ class XGBoostEngine:
         RuntimeError
             If the model has not been fitted yet.
         """
-        if self.model is None:
-            raise RuntimeError("Model not fitted yet – call .fit() first")
+        self._check_fitted()
         return pd.Series(self.model.feature_importances_, index=self._feature_names).sort_values(
             ascending=False
         )

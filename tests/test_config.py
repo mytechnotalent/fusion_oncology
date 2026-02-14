@@ -12,12 +12,12 @@ def test_defaults():
     -------
     - ``top_k_genes`` defaults to 5.
     - ``fuzz_iterations`` defaults to 20.
-    - ``xgb_n_estimators`` defaults to 50.
+    - ``xgb_n_estimators`` defaults to 500.
     """
     cfg = ProjectConfig()
     assert cfg.top_k_genes == 5
     assert cfg.fuzz_iterations == 20
-    assert cfg.xgb_n_estimators == 50
+    assert cfg.xgb_n_estimators == 500
 
 
 def test_override(tmp_path):
