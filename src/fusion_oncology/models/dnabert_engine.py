@@ -101,9 +101,11 @@ class DNABERTEngine:
         if self._model is None:
             logger.info("Loading DNABERT-2 on %s …", self.device)
             config = AutoConfig.from_pretrained(self.cfg.model_path, trust_remote_code=True)
-            # Triton flash-attention requires CUDA; disable on CPU/MPS
-            if self.device != "cuda":
-                config.use_flash_attn = False
+            # DNABERT-2 bundles an outdated Triton flash-attention kernel
+            # that is incompatible with Triton >= 3.0 (removed trans_b kwarg
+            # from tl.dot).  Disable it unconditionally so the model falls
+            # back to standard PyTorch attention, which works on every device.
+            config.use_flash_attn = False
             self._model = AutoModel.from_pretrained(
                 self.cfg.model_path,
                 config=config,
