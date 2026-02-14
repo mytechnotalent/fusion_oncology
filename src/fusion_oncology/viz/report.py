@@ -114,11 +114,23 @@ def _build_cv_section(
     """
     if not cv_metrics:
         return []
+    rows = []
+    for label, key in [
+        ("Accuracy", "accuracy"),
+        ("Precision", "precision"),
+        ("Recall", "recall"),
+        ("F1-Score", "f1"),
+        ("F2-Score", "f2"),
+        ("ROC AUC", "roc_auc"),
+    ]:
+        mean = cv_metrics.get(f"mean_{key}", 0)
+        std = cv_metrics.get(f"std_{key}", 0)
+        rows.append(f"<tr><td>{label}</td>" f"<td>{mean:.4f} &plusmn; {std:.4f}</td></tr>")
     return [
-        "<h2>Model Performance</h2>",
-        f"<p>XGBoost {cv_metrics.get('mean_accuracy', 0):.4f} "
-        f"&plusmn; {cv_metrics.get('std_accuracy', 0):.4f} accuracy "
-        f"(5-fold stratified CV)</p>",
+        "<h2>Model Performance (5-fold stratified CV)</h2>",
+        "<table><tr><th>Metric</th><th>Score</th></tr>",
+        *rows,
+        "</table>",
     ]
 
 

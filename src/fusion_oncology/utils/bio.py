@@ -17,15 +17,23 @@ from fusion_oncology.config import ProjectConfig
 logger = logging.getLogger(__name__)
 
 
-def _synthetic_sequence(length: int = 200) -> str:
+def _synthetic_sequence(length: int = 1000, gene: str = "") -> str:
     """Generate a deterministic synthetic DNA sequence for fallback.
 
-    Uses a fixed NumPy RNG seed so results are reproducible across runs.
+    The seed is derived from the *gene* name so that different genes
+    produce different fallback sequences while remaining reproducible.
+
+    A default length of 1 000 bp ensures that the DNABERT-2 tokenizer
+    has enough context to produce meaningful embeddings and that
+    multi-point mutation fuzzing generates measurable cosine drift.
 
     Parameters
     ----------
     length : int
-        Number of base-pairs to generate (default 200).
+        Number of base-pairs to generate (default 1 000).
+    gene : str
+        Gene symbol used to vary the RNG seed.  An empty string
+        falls back to the legacy fixed seed (42).
 
     Returns
     -------
@@ -34,7 +42,8 @@ def _synthetic_sequence(length: int = 200) -> str:
     """
     import numpy as np
 
-    rng = np.random.default_rng(seed=42)
+    base_seed = 42 if not gene else (hash(gene) & 0xFFFF_FFFF)
+    rng = np.random.default_rng(seed=base_seed)
     return "".join(rng.choice(["A", "C", "G", "T"], size=length))
 
 
@@ -113,7 +122,7 @@ def _pad_short_sequence(gene: str, sequence: str) -> str:
         Padded sequence with at least 200 bp total.
     """
     logger.warning("Sequence for %s too short (%d bp) – padding", gene, len(sequence))
-    return sequence + _synthetic_sequence()
+    return sequence + _synthetic_sequence(gene=gene)
 
 
 def _do_entrez_lookup(gene: str, config: ProjectConfig) -> str:
@@ -133,7 +142,7 @@ def _do_entrez_lookup(gene: str, config: ProjectConfig) -> str:
     """
     id_list = _search_entrez(gene, config)
     if not id_list:
-        return _synthetic_sequence()
+        return _synthetic_sequence(gene=gene)
     sequence = _parse_fasta_sequence(_fetch_fasta(id_list[0]))
     if len(sequence) < 20:
         sequence = _pad_short_sequence(gene, sequence)
@@ -164,7 +173,7 @@ def fetch_gene_sequence(gene: str, config: ProjectConfig | None = None) -> str:
     try:
         return _do_entrez_lookup(gene, cfg)
     except Exception:
-        return _synthetic_sequence()
+        return _synthetic_sequence(gene=gene)
 
 
 def gc_content(seq: str) -> float:

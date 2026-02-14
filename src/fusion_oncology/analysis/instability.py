@@ -55,31 +55,40 @@ class InstabilityAnalyzer:
 
     # ── core logic ───────────────────────────────────────────────────────
 
-    def _mutate(self, seq: str) -> str:
-        """Introduce a single random point mutation into *seq*.
+    def _mutate(self, seq: str, n_mutations: int = 1) -> str:
+        """Introduce *n_mutations* random point mutations into *seq*.
 
-        A random position is selected and its nucleotide is replaced
+        Positions are sampled without replacement and each is replaced
         with a uniformly chosen *different* base.
 
         Parameters
         ----------
         seq : str
             Original DNA sequence.
+        n_mutations : int
+            Number of simultaneous point mutations (default 1).
 
         Returns
         -------
         str
-            Mutated sequence (exactly one base changed).
+            Mutated sequence with *n_mutations* bases changed.
         """
         bases = list(seq)
-        idx = self._rng.integers(0, len(bases))
-        original = bases[idx]
-        choices = [b for b in NUCLEOTIDES if b != original]
-        bases[idx] = self._rng.choice(choices)
+        n = min(n_mutations, len(bases))
+        positions = self._rng.choice(len(bases), size=n, replace=False)
+        for idx in positions:
+            original = bases[idx]
+            choices = [b for b in NUCLEOTIDES if b != original]
+            bases[idx] = self._rng.choice(choices)
         return "".join(bases)
 
     def _compute_drifts(self, sequence: str) -> list[float]:
-        """Compute cosine drifts for *N* random single-nucleotide mutants.
+        """Compute cosine drifts for *N* multi-point mutants.
+
+        Each iteration introduces ``max(3, len(sequence) // 100)``
+        simultaneous point mutations — roughly a 1 % mutation rate —
+        so that the embedding drift is large enough to measure even
+        for short synthetic fallback sequences.
 
         Parameters
         ----------
@@ -91,12 +100,14 @@ class InstabilityAnalyzer:
         list[float]
             One drift value per fuzz iteration.
         """
+        n_mutations = max(3, len(sequence) // 100)
         ref_emb = self.bert.embed(sequence)
         drifts: list[float] = []
         for _ in range(self.cfg.fuzz_iterations):
-            mutant = self._mutate(sequence)
+            mutant = self._mutate(sequence, n_mutations=n_mutations)
             mut_emb = self.bert.embed(mutant)
-            drifts.append(float(1.0 - cosine_similarity([ref_emb], [mut_emb])[0][0]))
+            sim = float(cosine_similarity([ref_emb], [mut_emb])[0][0])
+            drifts.append(max(0.0, 1.0 - sim))
         return drifts
 
     def _log_instability(self, gene: str, mean_drift: float, std_drift: float) -> None:

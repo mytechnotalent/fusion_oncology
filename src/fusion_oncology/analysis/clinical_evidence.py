@@ -338,7 +338,12 @@ def _post_civic(gene_symbol):
         pld = {"query": _CIVIC_EVIDENCE_QUERY, "variables": {"name": gene_symbol}}
         resp = requests.post(_CIVIC_URL, json=pld, timeout=15)
         resp.raise_for_status()
-        return resp.json()["data"]["genes"]["nodes"]
+        body = resp.json()
+        nodes = body.get("data", {}).get("genes", {}).get("nodes", [])
+        if not nodes:
+            logger.info("CIViC: no gene entry for %s", gene_symbol)
+            return None
+        return nodes
     except Exception as exc:
         logger.error("CIViC query failed for %s: %s", gene_symbol, exc)
         return None

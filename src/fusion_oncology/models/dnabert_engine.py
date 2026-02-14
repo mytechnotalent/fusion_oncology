@@ -108,12 +108,26 @@ class DNABERTEngine:
                 trust_remote_code=True,
                 revision=self.cfg.dnabert_revision,
             )
-            self._model = AutoModel.from_pretrained(
-                self.cfg.model_path,
-                config=config,
-                trust_remote_code=True,
-                revision=self.cfg.dnabert_revision,
-            ).to(self.device)
+            # Suppress ALL warnings during model loading:
+            # 1. "Some weights … were not initialized" (pooler.dense)
+            # 2. "Unable to import Triton" UserWarning from bert_layers
+            import warnings as _w
+
+            _tf_logger = logging.getLogger("transformers.modeling_utils")
+            _prev_level = _tf_logger.level
+            _tf_logger.setLevel(logging.ERROR)
+            with _w.catch_warnings():
+                _w.filterwarnings("ignore", message=".*Unable to import Triton.*")
+                _w.filterwarnings("ignore", message=".*not initialized.*")
+                try:
+                    self._model = AutoModel.from_pretrained(
+                        self.cfg.model_path,
+                        config=config,
+                        trust_remote_code=True,
+                        revision=self.cfg.dnabert_revision,
+                    ).to(self.device)
+                finally:
+                    _tf_logger.setLevel(_prev_level)
             # DNABERT-2 bundles a Triton flash-attention kernel that is
             # incompatible with Triton >= 3.0 (removed ``trans_b`` kwarg
             # from ``tl.dot``).  The attention branch in
@@ -170,6 +184,10 @@ class DNABERTEngine:
     ) -> np.ndarray:
         """Run a forward pass and mean-pool the last hidden state.
 
+        Only non-padding positions (identified by the attention mask)
+        contribute to the mean so that padding tokens do not dilute
+        the embedding signal.
+
         Parameters
         ----------
         inputs : dict[str, torch.Tensor]
@@ -186,7 +204,10 @@ class DNABERTEngine:
         # (encoder_outputs, pooled_output), NOT a BaseModelOutput with
         # .last_hidden_state.  Index [0] to get the hidden states.
         hidden = outputs[0]
-        return hidden.mean(dim=1).cpu().numpy()[0]
+        mask = inputs["attention_mask"].unsqueeze(-1).float()  # (1, seq, 1)
+        summed = (hidden * mask).sum(dim=1)  # (1, dim)
+        counts = mask.sum(dim=1).clamp(min=1)  # (1, 1)
+        return (summed / counts).cpu().numpy()[0]
 
     # ── public embedding API ─────────────────────────────────────────────
 
@@ -241,7 +262,10 @@ class DNABERTEngine:
         self,
         inputs: dict[str, torch.Tensor],
     ) -> np.ndarray:
-        """Forward-pass and mean-pool for a token batch.
+        """Forward-pass and masked mean-pool for a token batch.
+
+        Only non-padding positions contribute to the mean so that
+        padding tokens do not dilute the embedding signal.
 
         Parameters
         ----------
@@ -257,7 +281,10 @@ class DNABERTEngine:
             outputs = self.model(**inputs)
         # DNABERT-2 returns a plain tuple, not BaseModelOutput.
         hidden = outputs[0]
-        return hidden.mean(dim=1).cpu().numpy()
+        mask = inputs["attention_mask"].unsqueeze(-1).float()  # (B, seq, 1)
+        summed = (hidden * mask).sum(dim=1)  # (B, dim)
+        counts = mask.sum(dim=1).clamp(min=1)  # (B, 1)
+        return (summed / counts).cpu().numpy()
 
     # ── public batch API ─────────────────────────────────────────────────
 

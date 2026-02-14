@@ -13,7 +13,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.metrics import make_scorer, fbeta_score
+from sklearn.model_selection import StratifiedKFold, cross_validate as sklearn_cv
 from sklearn.preprocessing import LabelEncoder
 
 from fusion_oncology.config import ProjectConfig
@@ -127,25 +128,57 @@ class XGBoostEngine:
             n_jobs=-1,
         )
 
+    @staticmethod
+    def _summarise(scores: np.ndarray) -> tuple[float, float]:
+        """Return (mean, std) for a per-fold score array."""
+        return float(np.mean(scores)), float(np.std(scores))
+
     def _compute_cv_metrics(
         self,
-        scores: np.ndarray,
+        cv_results: dict[str, np.ndarray],
     ) -> dict[str, float]:
-        """Compute and log mean/std accuracy from CV scores.
+        """Compute mean ± std for all six evaluation metrics.
 
         Parameters
         ----------
-        scores : np.ndarray
-            Per-fold accuracy values.
+        cv_results : dict[str, np.ndarray]
+            Output of ``sklearn.model_selection.cross_validate``
+            containing ``test_<scorer>`` arrays.
 
         Returns
         -------
         dict[str, float]
-            Keys ``mean_accuracy`` and ``std_accuracy``.
+            Keys: ``mean_accuracy``, ``std_accuracy``,
+            ``mean_precision``, ``std_precision``,
+            ``mean_recall``, ``std_recall``,
+            ``mean_f1``, ``std_f1``,
+            ``mean_f2``, ``std_f2``,
+            ``mean_roc_auc``, ``std_roc_auc``.
         """
-        mean, std = float(np.mean(scores)), float(np.std(scores))
-        result = {"mean_accuracy": mean, "std_accuracy": std}
-        logger.info("CV accuracy: %.4f ± %.4f", mean, std)
+        result: dict[str, float] = {}
+        metric_map = {
+            "accuracy": "accuracy",
+            "precision": "precision_weighted",
+            "recall": "recall_weighted",
+            "f1": "f1_weighted",
+            "f2": "f2_weighted",
+            "roc_auc": "roc_auc_ovr_weighted",
+        }
+        for short_name, scorer_key in metric_map.items():
+            arr = cv_results.get(f"test_{scorer_key}", np.array([np.nan]))
+            mean, std = self._summarise(arr)
+            result[f"mean_{short_name}"] = mean
+            result[f"std_{short_name}"] = std
+
+        logger.info(
+            "CV  acc=%.4f  prec=%.4f  rec=%.4f  " "f1=%.4f  f2=%.4f  auc=%.4f",
+            result["mean_accuracy"],
+            result["mean_precision"],
+            result["mean_recall"],
+            result["mean_f1"],
+            result["mean_f2"],
+            result["mean_roc_auc"],
+        )
         return result
 
     # ── evaluation ───────────────────────────────────────────────────────
@@ -197,8 +230,23 @@ class XGBoostEngine:
 
         skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
         clf = self._build_cv_classifier()
-        scores = cross_val_score(clf, X_num, y_enc, cv=skf, scoring="accuracy")
-        return self._compute_cv_metrics(scores)
+
+        f2_scorer = make_scorer(
+            fbeta_score,
+            beta=2,
+            average="weighted",
+            zero_division=0,
+        )
+        scoring = {
+            "accuracy": "accuracy",
+            "precision_weighted": "precision_weighted",
+            "recall_weighted": "recall_weighted",
+            "f1_weighted": "f1_weighted",
+            "f2_weighted": f2_scorer,
+            "roc_auc_ovr_weighted": "roc_auc_ovr_weighted",
+        }
+        cv_results = sklearn_cv(clf, X_num, y_enc, cv=skf, scoring=scoring)
+        return self._compute_cv_metrics(cv_results)
 
     # ── importance ───────────────────────────────────────────────────────
 

@@ -214,6 +214,139 @@ RESISTANCE_DB: dict[str, list[dict[str, str]]] = {
             "frequency": "~10-20%",
         },
     ],
+    # ── Additional GDSC / kinase targets ─────────────────────────────────
+    "FGFR1": [
+        {
+            "drug": "Erdafitinib",
+            "mechanism": "FGFR gatekeeper mutations (V561M)",
+            "strategy": "Next-gen FGFR inhibitor or combination",
+            "frequency": "~10-15%",
+        },
+    ],
+    "FGFR2": [
+        {
+            "drug": "Pemigatinib/Futibatinib",
+            "mechanism": "FGFR2 kinase domain mutations",
+            "strategy": "Covalent FGFR inhibitor (Futibatinib)",
+            "frequency": "~10-20%",
+        },
+    ],
+    "FGFR3": [
+        {
+            "drug": "Erdafitinib",
+            "mechanism": "FGFR3 gatekeeper or activation loop mutations",
+            "strategy": "Pan-FGFR inhibitor or combination",
+            "frequency": "~10-15%",
+        },
+    ],
+    "ABL1": [
+        {
+            "drug": "Imatinib",
+            "mechanism": "BCR-ABL T315I gatekeeper mutation",
+            "strategy": "Switch to Ponatinib (3rd-gen TKI)",
+            "frequency": "~15-20%",
+        },
+        {
+            "drug": "Dasatinib/Nilotinib",
+            "mechanism": "Compound mutations in ABL kinase domain",
+            "strategy": "Ponatinib or Asciminib (allosteric inhibitor)",
+            "frequency": "~10-15%",
+        },
+    ],
+    "KIT": [
+        {
+            "drug": "Imatinib",
+            "mechanism": "Secondary KIT mutations (exon 13/14/17)",
+            "strategy": "Switch to Sunitinib or Ripretinib",
+            "frequency": "~40-60%",
+        },
+    ],
+    "JAK2": [
+        {
+            "drug": "Ruxolitinib",
+            "mechanism": "JAK2 persistence / clonal evolution",
+            "strategy": "Combination with BET inhibitor or BCL-xL inhibitor",
+            "frequency": "~30%",
+        },
+    ],
+    "AR": [
+        {
+            "drug": "Enzalutamide",
+            "mechanism": "AR amplification / AR-V7 splice variant",
+            "strategy": "AR degrader (PROTAC) or switch to chemotherapy",
+            "frequency": "~20-30%",
+        },
+        {
+            "drug": "Abiraterone",
+            "mechanism": "Glucocorticoid receptor upregulation",
+            "strategy": "Switch to Enzalutamide or add GR antagonist",
+            "frequency": "~10-15%",
+        },
+    ],
+    "ESR1": [
+        {
+            "drug": "Tamoxifen/Aromatase inhibitors",
+            "mechanism": "ESR1 ligand-binding domain mutations (Y537S, D538G)",
+            "strategy": "Switch to Elacestrant (oral SERD) or Fulvestrant",
+            "frequency": "~20-40%",
+        },
+    ],
+    "FLT3": [
+        {
+            "drug": "Midostaurin/Gilteritinib",
+            "mechanism": "FLT3 on-target resistance mutations (F691L)",
+            "strategy": "Next-gen FLT3 inhibitor or combination",
+            "frequency": "~10-20%",
+        },
+    ],
+    "IDH1": [
+        {
+            "drug": "Ivosidenib",
+            "mechanism": "IDH1 second-site mutations or IDH2 switching",
+            "strategy": "Dual IDH1/2 inhibitor or combination",
+            "frequency": "~10%",
+        },
+    ],
+    "AKT1": [
+        {
+            "drug": "Capivasertib",
+            "mechanism": "PTEN loss or mTORC1 reactivation",
+            "strategy": "AKT + mTOR inhibitor combination",
+            "frequency": "~15-20%",
+        },
+    ],
+    "NTRK1": [
+        {
+            "drug": "Larotrectinib",
+            "mechanism": "NTRK solvent-front mutations (G595R, G667C)",
+            "strategy": "Switch to Selitrectinib (2nd-gen TRK inhibitor)",
+            "frequency": "~10-20%",
+        },
+    ],
+    "ROS1": [
+        {
+            "drug": "Crizotinib",
+            "mechanism": "ROS1 G2032R solvent-front mutation",
+            "strategy": "Switch to Lorlatinib or Repotrectinib",
+            "frequency": "~30-40%",
+        },
+    ],
+    "SMO": [
+        {
+            "drug": "Vismodegib",
+            "mechanism": "SMO D473H mutation",
+            "strategy": "Downstream GLI inhibitor or itraconazole",
+            "frequency": "~15-20%",
+        },
+    ],
+    "MAP2K1": [
+        {
+            "drug": "Trametinib/Cobimetinib",
+            "mechanism": "MEK1 mutations or ERK reactivation",
+            "strategy": "ERK inhibitor combination",
+            "frequency": "~15-25%",
+        },
+    ],
 }
 
 

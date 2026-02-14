@@ -353,9 +353,19 @@ class FusionEngine:
         """
         if not self.cv_metrics:
             return
-        mean = self.cv_metrics["mean_accuracy"]
-        std = self.cv_metrics["std_accuracy"]
-        lines.append(f"\nXGBoost CV accuracy: {mean:.4f} ± {std:.4f}")
+        m = self.cv_metrics
+        lines.append("\nXGBoost CV metrics (5-fold stratified):")
+        for label, key in [
+            ("Accuracy", "accuracy"),
+            ("Precision", "precision"),
+            ("Recall", "recall"),
+            ("F1-Score", "f1"),
+            ("F2-Score", "f2"),
+            ("ROC AUC", "roc_auc"),
+        ]:
+            mean = m.get(f"mean_{key}", 0)
+            std = m.get(f"std_{key}", 0)
+            lines.append(f"  {label:>10s}: {mean:.4f} ± {std:.4f}")
 
     # ── convenience ──────────────────────────────────────────────────────
 

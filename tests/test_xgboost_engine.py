@@ -45,7 +45,7 @@ def test_all_importances(synthetic_expression, tiny_config):
 
 
 def test_cross_validate(synthetic_expression, tiny_config):
-    """Cross-validation must return accuracy between 0 and 1.
+    """Cross-validation must return all six metrics between 0 and 1.
 
     Parameters
     ----------
@@ -58,8 +58,16 @@ def test_cross_validate(synthetic_expression, tiny_config):
     eng = XGBoostEngine(tiny_config)
     eng.fit(X, y)
     metrics = eng.cross_validate(X, y, folds=3)
-    assert "mean_accuracy" in metrics
-    assert 0 <= metrics["mean_accuracy"] <= 1
+    for key in [
+        "mean_accuracy",
+        "mean_precision",
+        "mean_recall",
+        "mean_f1",
+        "mean_f2",
+        "mean_roc_auc",
+    ]:
+        assert key in metrics, f"missing {key}"
+        assert 0 <= metrics[key] <= 1, f"{key}={metrics[key]} out of [0,1]"
 
 
 def test_top_genes_before_fit_raises(tiny_config):

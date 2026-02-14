@@ -168,6 +168,239 @@ DRUG_TARGET_DB: dict[str, list[dict[str, str]]] = {
             "indication": "Cholangiocarcinoma",
         },
     ],
+    # ── Additional GDSC / kinase targets ─────────────────────────────────
+    "FGFR1": [
+        {"drug": "Erdafitinib", "status": "Approved", "indication": "Urothelial (FGFR+)"},
+        {"drug": "Infigratinib", "status": "Approved", "indication": "Cholangiocarcinoma"},
+    ],
+    "FGFR3": [
+        {"drug": "Erdafitinib", "status": "Approved", "indication": "Urothelial (FGFR+)"},
+    ],
+    "FGFR4": [
+        {"drug": "Futibatinib", "status": "Approved", "indication": "Cholangiocarcinoma"},
+    ],
+    "JAK1": [
+        {"drug": "Ruxolitinib", "status": "Approved", "indication": "Myelofibrosis, PV"},
+    ],
+    "JAK2": [
+        {"drug": "Ruxolitinib", "status": "Approved", "indication": "Myelofibrosis, PV"},
+        {"drug": "Fedratinib", "status": "Approved", "indication": "Myelofibrosis"},
+    ],
+    "ABL1": [
+        {"drug": "Imatinib", "status": "Approved", "indication": "CML, GIST"},
+        {"drug": "Dasatinib", "status": "Approved", "indication": "CML"},
+        {"drug": "Nilotinib", "status": "Approved", "indication": "CML"},
+        {"drug": "Ponatinib", "status": "Approved", "indication": "CML (T315I)"},
+    ],
+    "KIT": [
+        {"drug": "Imatinib", "status": "Approved", "indication": "GIST"},
+        {"drug": "Sunitinib", "status": "Approved", "indication": "GIST (2nd line)"},
+        {"drug": "Ripretinib", "status": "Approved", "indication": "GIST (4th line)"},
+        {"drug": "Avapritinib", "status": "Approved", "indication": "GIST (PDGFRA D842V)"},
+    ],
+    "PDGFRA": [
+        {"drug": "Imatinib", "status": "Approved", "indication": "GIST"},
+        {"drug": "Avapritinib", "status": "Approved", "indication": "GIST (D842V)"},
+    ],
+    "PDGFRB": [
+        {"drug": "Imatinib", "status": "Approved", "indication": "MDS/MPD"},
+    ],
+    "AKT1": [
+        {"drug": "Capivasertib", "status": "Approved", "indication": "HR+ Breast"},
+    ],
+    "AKT2": [
+        {"drug": "Capivasertib", "status": "Approved", "indication": "HR+ Breast"},
+    ],
+    "MAP2K1": [
+        {"drug": "Trametinib", "status": "Approved", "indication": "Melanoma, NSCLC"},
+        {"drug": "Cobimetinib", "status": "Approved", "indication": "Melanoma"},
+        {"drug": "Binimetinib", "status": "Approved", "indication": "Melanoma"},
+    ],
+    "MAP2K2": [
+        {"drug": "Trametinib", "status": "Approved", "indication": "Melanoma, NSCLC"},
+    ],
+    "NRAS": [
+        {"drug": "Binimetinib", "status": "Approved", "indication": "Melanoma (NRAS)"},
+    ],
+    "HDAC1": [
+        {"drug": "Vorinostat", "status": "Approved", "indication": "CTCL"},
+        {"drug": "Romidepsin", "status": "Approved", "indication": "CTCL, PTCL"},
+        {"drug": "Panobinostat", "status": "Approved", "indication": "Multiple Myeloma"},
+    ],
+    "HDAC2": [
+        {"drug": "Vorinostat", "status": "Approved", "indication": "CTCL"},
+    ],
+    "HDAC3": [
+        {"drug": "Vorinostat", "status": "Approved", "indication": "CTCL"},
+    ],
+    "HDAC6": [
+        {"drug": "Ricolinostat", "status": "Phase II", "indication": "Multiple Myeloma"},
+    ],
+    "BRD4": [
+        {"drug": "OTX015", "status": "Phase I", "indication": "Hematologic malignancies"},
+    ],
+    "PARP1": [
+        {"drug": "Olaparib", "status": "Approved", "indication": "Ovarian, Breast, Prostate"},
+        {"drug": "Niraparib", "status": "Approved", "indication": "Ovarian"},
+        {"drug": "Talazoparib", "status": "Approved", "indication": "Breast (BRCA+)"},
+    ],
+    "PARP2": [
+        {"drug": "Olaparib", "status": "Approved", "indication": "Ovarian, Breast"},
+    ],
+    "RAF1": [
+        {"drug": "Sorafenib", "status": "Approved", "indication": "HCC, RCC"},
+    ],
+    "ROCK1": [
+        {"drug": "Fasudil", "status": "Approved (Japan/China)", "indication": "Cerebral vasospasm"},
+        {"drug": "Ripasudil", "status": "Approved (Japan)", "indication": "Glaucoma"},
+    ],
+    "ROCK2": [
+        {"drug": "Belumosudil", "status": "Approved", "indication": "cGVHD"},
+    ],
+    "AURKA": [
+        {"drug": "Alisertib", "status": "Phase III", "indication": "PTCL, Breast"},
+    ],
+    "AURKB": [
+        {"drug": "Barasertib", "status": "Phase II", "indication": "AML"},
+    ],
+    "AURKC": [
+        {
+            "drug": "Alisertib",
+            "status": "Phase III",
+            "indication": "Cross-reactive Aurora kinase inhibitor",
+        },
+    ],
+    "PLK1": [
+        {"drug": "Volasertib", "status": "Phase III", "indication": "AML"},
+    ],
+    "WEE1": [
+        {"drug": "Adavosertib", "status": "Phase II", "indication": "Ovarian, solid tumors"},
+    ],
+    "ATR": [
+        {"drug": "Ceralasertib", "status": "Phase II", "indication": "Solid tumors"},
+    ],
+    "ATM": [
+        {"drug": "AZD0156", "status": "Phase I", "indication": "Solid tumors"},
+    ],
+    "CHEK1": [
+        {"drug": "Prexasertib", "status": "Phase II", "indication": "Solid tumors"},
+    ],
+    "CHEK2": [
+        {"drug": "Prexasertib", "status": "Phase II", "indication": "Solid tumors"},
+    ],
+    "MDM2": [
+        {"drug": "Idasanutlin", "status": "Phase III", "indication": "AML (TP53 wild-type)"},
+    ],
+    "NTRK1": [
+        {
+            "drug": "Larotrectinib",
+            "status": "Approved",
+            "indication": "NTRK fusion-positive solid tumors",
+        },
+        {
+            "drug": "Entrectinib",
+            "status": "Approved",
+            "indication": "NTRK fusion-positive solid tumors",
+        },
+    ],
+    "NTRK2": [
+        {"drug": "Larotrectinib", "status": "Approved", "indication": "NTRK fusion-positive"},
+    ],
+    "NTRK3": [
+        {"drug": "Larotrectinib", "status": "Approved", "indication": "NTRK fusion-positive"},
+    ],
+    "ROS1": [
+        {"drug": "Crizotinib", "status": "Approved", "indication": "NSCLC (ROS1+)"},
+        {"drug": "Entrectinib", "status": "Approved", "indication": "NSCLC (ROS1+)"},
+    ],
+    "SRC": [
+        {"drug": "Dasatinib", "status": "Approved", "indication": "CML (also SRC inhibitor)"},
+        {"drug": "Bosutinib", "status": "Approved", "indication": "CML"},
+    ],
+    "IGF1R": [
+        {
+            "drug": "Linsitinib",
+            "status": "Phase III (failed)",
+            "indication": "Adrenocortical carcinoma",
+        },
+    ],
+    "TGFBR1": [
+        {"drug": "Galunisertib", "status": "Phase II", "indication": "HCC, Pancreatic, MDS"},
+    ],
+    "TGFBR2": [
+        {"drug": "Galunisertib", "status": "Phase II", "indication": "HCC, Pancreatic"},
+    ],
+    "ACVR1": [
+        {"drug": "Saracatinib", "status": "Phase II", "indication": "Fibrodysplasia ossificans"},
+    ],
+    "ACVR1C": [
+        {
+            "drug": "—",
+            "status": "No approved drug",
+            "indication": "TGF-β/activin signaling (research target)",
+        },
+    ],
+    "ACVR1B": [
+        {
+            "drug": "—",
+            "status": "No approved drug",
+            "indication": "TGF-β/activin signaling (research target)",
+        },
+    ],
+    "AR": [
+        {"drug": "Enzalutamide", "status": "Approved", "indication": "Prostate cancer"},
+        {"drug": "Abiraterone", "status": "Approved", "indication": "Prostate cancer"},
+        {"drug": "Apalutamide", "status": "Approved", "indication": "Prostate cancer"},
+        {"drug": "Darolutamide", "status": "Approved", "indication": "Prostate cancer"},
+    ],
+    "ESR1": [
+        {"drug": "Tamoxifen", "status": "Approved", "indication": "ER+ Breast"},
+        {"drug": "Fulvestrant", "status": "Approved", "indication": "ER+ Breast"},
+        {"drug": "Elacestrant", "status": "Approved", "indication": "ER+ Breast (ESR1 mut)"},
+    ],
+    "SMO": [
+        {"drug": "Vismodegib", "status": "Approved", "indication": "Basal cell carcinoma"},
+        {"drug": "Sonidegib", "status": "Approved", "indication": "Basal cell carcinoma"},
+    ],
+    "PTCH1": [
+        {"drug": "Vismodegib", "status": "Approved", "indication": "Basal cell carcinoma"},
+    ],
+    "FLT3": [
+        {"drug": "Midostaurin", "status": "Approved", "indication": "AML (FLT3+)"},
+        {"drug": "Gilteritinib", "status": "Approved", "indication": "AML (FLT3+)"},
+    ],
+    "IDH1": [
+        {"drug": "Ivosidenib", "status": "Approved", "indication": "AML, Cholangiocarcinoma"},
+    ],
+    "IDH2": [
+        {"drug": "Enasidenib", "status": "Approved", "indication": "AML (IDH2 mutant)"},
+    ],
+    "EZH2": [
+        {"drug": "Tazemetostat", "status": "Approved", "indication": "Epithelioid sarcoma, FL"},
+    ],
+    "DNMT1": [
+        {"drug": "Azacitidine", "status": "Approved", "indication": "MDS, AML"},
+        {"drug": "Decitabine", "status": "Approved", "indication": "MDS, AML"},
+    ],
+    "DNMT3A": [
+        {"drug": "Azacitidine", "status": "Approved", "indication": "MDS, AML"},
+    ],
+    "XPO1": [
+        {"drug": "Selinexor", "status": "Approved", "indication": "Multiple Myeloma, DLBCL"},
+    ],
+    "TUBB": [
+        {"drug": "Paclitaxel", "status": "Approved", "indication": "Breast, Ovarian, NSCLC"},
+        {"drug": "Vinblastine", "status": "Approved", "indication": "Hodgkin, Testicular"},
+        {"drug": "Eribulin", "status": "Approved", "indication": "Breast, Liposarcoma"},
+    ],
+    "TOP1": [
+        {"drug": "Irinotecan", "status": "Approved", "indication": "CRC"},
+        {"drug": "Topotecan", "status": "Approved", "indication": "Ovarian, SCLC"},
+    ],
+    "TOP2A": [
+        {"drug": "Doxorubicin", "status": "Approved", "indication": "Breast, Sarcoma, Lymphoma"},
+        {"drug": "Etoposide", "status": "Approved", "indication": "SCLC, Testicular, Lymphoma"},
+    ],
 }
 
 
