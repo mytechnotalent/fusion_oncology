@@ -102,15 +102,21 @@ class DNABERTEngine:
             logger.info("Loading DNABERT-2 on %s …", self.device)
             config = AutoConfig.from_pretrained(self.cfg.model_path, trust_remote_code=True)
             # DNABERT-2 bundles an outdated Triton flash-attention kernel
-            # that is incompatible with Triton >= 3.0 (removed trans_b kwarg
-            # from tl.dot).  Disable it unconditionally so the model falls
-            # back to standard PyTorch attention, which works on every device.
+            # incompatible with Triton >= 3.0 (removed trans_b kwarg from
+            # tl.dot).  Disable at config level AND on every submodule so
+            # the model falls back to standard PyTorch attention.
             config.use_flash_attn = False
             self._model = AutoModel.from_pretrained(
                 self.cfg.model_path,
                 config=config,
                 trust_remote_code=True,
             ).to(self.device)
+            # Force-disable flash attention on every submodule (belt-and-
+            # suspenders: the config flag alone is not always respected by
+            # DNABERT-2's custom bert_layers.py).
+            for module in self._model.modules():
+                if hasattr(module, "use_flash_attn"):
+                    module.use_flash_attn = False
             self._model.eval()
         return self._model
 
