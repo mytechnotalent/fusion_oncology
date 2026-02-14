@@ -1,6 +1,8 @@
 #  Fusion Oncology on Kaggle
 
-Quick guide to running Fusion Oncology on Kaggle datasets.
+Quick guide to running Fusion Oncology’s **true multi-modal fusion model** on Kaggle.
+The pipeline trains a single XGBoost on drug sensitivity features concatenated with
+DNABERT-2 sequence embeddings, producing **one unified set of CV metrics**.
 
 ## Quick Start (5 minutes)
 
@@ -214,8 +216,9 @@ print(results[['Gene', 'Fusion_Index', 'Pathways', 'Drugs']])
 | Component               | Time (default) | Time (fast)             |
 | ----------------------- | -------------- | ----------------------- |
 | Data loading            | 10s            | 10s                     |
-| XGBoost training        | 30s            | 15s (fewer trees)       |
+| XGBoost baseline        | 30s            | 15s (fewer trees)       |
 | DNABERT-2 embedding     | 2-5min         | 1min (fewer iterations) |
+| Fusion model training   | 30s            | 15s                     |
 | Pathway/drug annotation | 5s             | 5s                      |
 | Clinical evidence       | 10-30s         | 10s (cached)            |
 | Total                   | **~5-8 min**   | **~2-3 min**            |

@@ -133,7 +133,9 @@ def _build_engine(cfg):
     engine.network = net
     engine.results = pd.DataFrame()
     engine.cv_metrics = {}
+    engine.fusion_cv_metrics = {}
     engine.dnabert_metrics = {}
+    engine._gene_embeddings = {}
     return engine
 
 
@@ -472,6 +474,8 @@ class TestRun:
         mock_fetch.return_value = "ACGTACGTACGTACGTACGT"
         engine = _build_engine(cfg)
         engine.network.strategic_score = lambda gene: 0.5
+        engine._train_fusion_xgboost = MagicMock()
+        engine.fusion_cv_metrics = {"mean_accuracy": 0.9}
         X = pd.DataFrame({"EGFR": [1, 2], "BRAF": [3, 4]})
         y = pd.Series(["BRCA", "LUAD"])
         result = engine.run(X, y)

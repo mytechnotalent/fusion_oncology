@@ -1,11 +1,13 @@
 """
-Fusion Engine – combines XGBoost importance with DNABERT instability.
+Fusion Engine – true multi-modal fusion of XGBoost and DNABERT-2.
 
-This is the central orchestrator: it trains XGBoost for dynamic gene
-scoring, retrieves DNA sequences from NCBI, computes structural
-instability via embedding drift, and produces a ranked fusion index.
-Now also integrates clinical evidence, resistance prediction,
-synthetic lethality screening, and network pharmacology scoring.
+This is the central orchestrator: it trains an initial XGBoost for gene
+ranking, computes DNABERT-2 embeddings for the top genes, then builds
+a *fusion feature matrix* that concatenates drug-sensitivity values with
+sensitivity-weighted DNABERT-2 embeddings.  A second XGBoost classifier
+is trained on this combined space so that a single model jointly learns
+from both modalities — making this a genuine learned fusion, not just
+a heuristic product of two independent scores.
 """
 
 from __future__ import annotations
@@ -33,20 +35,27 @@ logger = logging.getLogger(__name__)
 
 class FusionEngine:
     """
-    Multi-modal analysis engine fusing XGBoost and DNABERT.
+    True multi-modal fusion engine combining XGBoost and DNABERT-2.
 
     Workflow
     --------
-    1.  Train XGBoost on the expression matrix → top-K gene importance.
-    2.  For each top gene, fetch the RefSeq DNA sequence from NCBI.
-    3.  Compute DNABERT embedding and measure mutational instability
-        (average cosine drift under random single-nucleotide mutations).
-    4.  Combine importance × instability into a Fusion Index.
-    5.  Enrich against KEGG / Reactome pathways.
-    6.  Annotate drug targets and druggability.
-    7.  Score resistance risk per gene.
-    8.  Screen for synthetic lethality partners.
-    9.  Compute network pharmacology strategic score.
+    1.  Train *baseline* XGBoost on drug-sensitivity features → top-K genes.
+    2.  Fetch RefSeq DNA sequences for the top-K genes from NCBI.
+    3.  Compute 768-dim DNABERT-2 embeddings for each gene sequence.
+    4.  Build a **fusion feature matrix**: for every cell line, weight each
+        gene's embedding by that cell line's sensitivity value, producing
+        a 768-dim "genomic context" vector per sample.  Concatenate this
+        with the original drug-sensitivity features.
+    5.  Train a *fusion* XGBoost on the combined feature space and run
+        stratified 5-fold CV — a single model that jointly learns from
+        both modalities.
+    6.  Compute mutational instability via embedding drift and derive
+        the Fusion Index (importance × instability × 1000).
+    7.  Enrich against KEGG / Reactome pathways.
+    8.  Annotate drug targets and druggability.
+    9.  Score resistance risk per gene.
+    10. Screen for synthetic lethality partners.
+    11. Compute network pharmacology strategic score.
 
     Parameters
     ----------
@@ -152,7 +161,9 @@ class FusionEngine:
         self._init_analyzers()
         self.results: pd.DataFrame = pd.DataFrame()
         self.cv_metrics: dict[str, Any] = {}
+        self.fusion_cv_metrics: dict[str, Any] = {}
         self.dnabert_metrics: dict[str, Any] = {}
+        self._gene_embeddings: dict[str, np.ndarray] = {}
 
     # ── run helpers ──────────────────────────────────────────────────────
 
@@ -315,6 +326,166 @@ class FusionEngine:
         )
         self.results["SL_Partners"] = genes.apply(self._sl_label)
 
+    # ── fusion feature helpers ───────────────────────────────────────────
+
+    def _compute_gene_embeddings(
+        self,
+        sequences: dict[str, str],
+    ) -> dict[str, np.ndarray]:
+        """Compute DNABERT-2 embeddings for each gene sequence.
+
+        Parameters
+        ----------
+        sequences : dict[str, str]
+            Gene-name → DNA-sequence mapping.
+
+        Returns
+        -------
+        dict[str, np.ndarray]
+            Gene-name → 768-dim embedding vector mapping.
+        """
+        logger.info("Computing DNABERT-2 embeddings for %d genes …", len(sequences))
+        return {gene: self.bert.embed(seq) for gene, seq in sequences.items()}
+
+    @staticmethod
+    def _build_embedding_matrix(
+        gene_list: list[str],
+        embeddings: dict[str, np.ndarray],
+    ) -> np.ndarray:
+        """Stack gene embeddings into a (K × emb_dim) matrix.
+
+        Parameters
+        ----------
+        gene_list : list[str]
+            Ordered gene names.
+        embeddings : dict[str, np.ndarray]
+            Gene-name → embedding vector mapping.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(K, emb_dim)`` embedding matrix.
+        """
+        return np.stack([embeddings[g] for g in gene_list])
+
+    @staticmethod
+    def _extract_sensitivity_values(
+        X: pd.DataFrame,
+        gene_list: list[str],
+    ) -> np.ndarray:
+        """Extract per-cell-line sensitivity values for top genes.
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Full drug-sensitivity feature matrix.
+        gene_list : list[str]
+            Top-K gene names to extract.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(n_samples, K)`` sensitivity matrix.
+        """
+        sensitivity = np.zeros((len(X), len(gene_list)))
+        for i, gene in enumerate(gene_list):
+            if gene in X.columns:
+                sensitivity[:, i] = X[gene].values
+        return sensitivity
+
+    @staticmethod
+    def _compute_weighted_embeddings(
+        sensitivity: np.ndarray,
+        emb_matrix: np.ndarray,
+    ) -> np.ndarray:
+        """Compute sensitivity-weighted gene embedding per cell line.
+
+        Parameters
+        ----------
+        sensitivity : np.ndarray
+            Shape ``(n_samples, K)`` drug-sensitivity values.
+        emb_matrix : np.ndarray
+            Shape ``(K, emb_dim)`` gene embedding matrix.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(n_samples, emb_dim)`` weighted embeddings.
+        """
+        return sensitivity @ emb_matrix
+
+    @staticmethod
+    def _normalise_embeddings(weighted: np.ndarray) -> np.ndarray:
+        """L2-normalise each row of the weighted embedding matrix.
+
+        Parameters
+        ----------
+        weighted : np.ndarray
+            Shape ``(n_samples, emb_dim)`` unnormalised embeddings.
+
+        Returns
+        -------
+        np.ndarray
+            L2-normalised embeddings (unit vectors per row).
+        """
+        norms = np.linalg.norm(weighted, axis=1, keepdims=True)
+        norms = np.where(norms < 1e-10, 1.0, norms)
+        return weighted / norms
+
+    def _build_fusion_features(
+        self,
+        X: pd.DataFrame,
+        gene_list: list[str],
+    ) -> pd.DataFrame:
+        """Build the fusion feature matrix combining both modalities.
+
+        Concatenates the original drug-sensitivity features with
+        768-dim sensitivity-weighted DNABERT-2 embeddings per sample.
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Original drug-sensitivity feature matrix.
+        gene_list : list[str]
+            Top-K gene names with available embeddings.
+
+        Returns
+        -------
+        pd.DataFrame
+            Combined feature matrix with ``N + 768`` columns.
+        """
+        emb_matrix = self._build_embedding_matrix(gene_list, self._gene_embeddings)
+        sensitivity = self._extract_sensitivity_values(X, gene_list)
+        weighted = self._compute_weighted_embeddings(sensitivity, emb_matrix)
+        normed = self._normalise_embeddings(weighted)
+        emb_dim = emb_matrix.shape[1]
+        emb_cols = [f"BERT_emb_{i}" for i in range(emb_dim)]
+        emb_df = pd.DataFrame(normed, index=X.index, columns=emb_cols)
+        return pd.concat([X, emb_df], axis=1)
+
+    def _train_fusion_xgboost(
+        self,
+        X_fused: pd.DataFrame,
+        y: pd.Series,
+    ) -> None:
+        """Train XGBoost on the fusion feature matrix and evaluate.
+
+        Creates a fresh ``XGBoostEngine``, fits it on the combined
+        drug-sensitivity + DNABERT-2 embedding features, and stores
+        the fusion CV metrics.
+
+        Parameters
+        ----------
+        X_fused : pd.DataFrame
+            Fusion feature matrix (original + 768-dim embeddings).
+        y : pd.Series
+            Cancer-type labels.
+        """
+        logger.info("Training fusion XGBoost on %d features …", X_fused.shape[1])
+        self.fusion_xgb = XGBoostEngine(self.cfg)
+        self.fusion_xgb.fit(X_fused, y)
+        self.fusion_cv_metrics = self.fusion_xgb.cross_validate(X_fused, y)
+
     # ── metrics helpers ────────────────────────────────────────────────
 
     @staticmethod
@@ -440,7 +611,11 @@ class FusionEngine:
         """
         X = self._filter_gene_columns(X)
         top = self._train_xgboost(X, y)
-        self._score_instability(top, self._fetch_sequences(top))
+        sequences = self._fetch_sequences(top)
+        self._gene_embeddings = self._compute_gene_embeddings(sequences)
+        X_fused = self._build_fusion_features(X, list(top.keys()))
+        self._train_fusion_xgboost(X_fused, y)
+        self._score_instability(top, sequences)
         self._compute_all_metrics()
         self._run_all_annotations()
         return self.results
@@ -491,7 +666,31 @@ class FusionEngine:
         if not self.cv_metrics:
             return
         m = self.cv_metrics
-        lines.append("\nXGBoost CV metrics (5-fold stratified):")
+        lines.append("\nXGBoost Baseline CV metrics (5-fold stratified):")
+        for label, key in [
+            ("Accuracy", "accuracy"),
+            ("Precision", "precision"),
+            ("Recall", "recall"),
+            ("F1-Score", "f1"),
+            ("F2-Score", "f2"),
+            ("ROC AUC", "roc_auc"),
+        ]:
+            mean = m.get(f"mean_{key}", 0)
+            std = m.get(f"std_{key}", 0)
+            lines.append(f"  {label:>10s}: {mean:.4f} ± {std:.4f}")
+
+    def _append_fusion_cv_metrics(self, lines: list[str]) -> None:
+        """Append fusion model CV metrics to the summary lines.
+
+        Parameters
+        ----------
+        lines : list[str]
+            Mutable list of summary lines to extend.
+        """
+        if not self.fusion_cv_metrics:
+            return
+        m = self.fusion_cv_metrics
+        lines.append("\nFusion Model CV metrics (XGBoost + DNABERT-2 features):")
         for label, key in [
             ("Accuracy", "accuracy"),
             ("Precision", "precision"),
@@ -565,6 +764,7 @@ class FusionEngine:
             return "No analysis has been run yet."
         lines = self._build_ranking_lines()
         self._append_cv_metrics(lines)
+        self._append_fusion_cv_metrics(lines)
         self._append_dnabert_metrics(lines)
         self._append_pipeline_metrics(lines)
         return "\n".join(lines)
