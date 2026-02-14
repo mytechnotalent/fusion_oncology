@@ -175,7 +175,11 @@ class DNABERTEngine:
         """
         with torch.no_grad():
             outputs = self.model(**inputs)
-        return outputs.last_hidden_state.mean(dim=1).cpu().numpy()[0]
+        # DNABERT-2's custom BertModel.forward() returns a plain tuple
+        # (encoder_outputs, pooled_output), NOT a BaseModelOutput with
+        # .last_hidden_state.  Index [0] to get the hidden states.
+        hidden = outputs[0]
+        return hidden.mean(dim=1).cpu().numpy()[0]
 
     # ── public embedding API ─────────────────────────────────────────────
 
