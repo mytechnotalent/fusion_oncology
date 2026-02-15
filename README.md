@@ -6,7 +6,7 @@
 
 # Fusion Oncology
 
-Fusion Oncology is an end-to-end research pipeline that transforms drug sensitivity data into standardized AMP/ASCO/CAP-tiered reports. It builds a **production-grade multi-modal fusion model** — a single XGBoost classifier trained on drug sensitivity features, 10 engineered distributional features, and sensitivity-weighted DNABERT-2 sequence embeddings — to prioritise therapeutic targets. The pipeline includes intelligent class merging, optional Optuna Bayesian hyperparameter optimization, and repeated stratified cross-validation for maximum metric stability.
+Fusion Oncology is an end-to-end research pipeline that transforms drug sensitivity data into standardized AMP/ASCO/CAP-tiered reports. It builds a **production-grade multi-modal fusion model** — a single XGBoost classifier trained on drug sensitivity features, 10 engineered distributional features, and PCA-compressed sensitivity-weighted DNABERT-2 sequence embeddings — to prioritise therapeutic targets. The pipeline includes intelligent class merging, class-balanced sample weights, optional Optuna Bayesian hyperparameter optimization, and repeated stratified cross-validation for maximum metric stability.
 
 ---
 
@@ -18,11 +18,13 @@ Fusion Oncology builds a **production-grade multi-modal fusion model** that comb
 | ---------------- | ----------------------------------------------- | ---------------------------------------------------------- |
 | **Drug sens.**   | XGBoost on GDSC LN_IC50 features                | Which genes best discriminate cancer types                 |
 | **Engineered**   | 10 row-level distributional features per sample | Per-sample mean, std, skew, kurtosis, IQR, CV              |
-| **Genomic ctx.** | DNABERT-2 768-dim embeddings × drug sensitivity | Sensitivity-weighted structural gene context               |
-| **Fusion model** | XGBoost on concatenated (N + 10 + 768) features | Jointly learned drug sensitivity + distribution + sequence |
+| **Genomic ctx.** | DNABERT-2 768-dim embeddings → PCA (50 dims)    | Noise-reduced sensitivity-weighted gene context            |
+| **Fusion model** | XGBoost on concatenated (N + 10 + 50) features  | Jointly learned drug sensitivity + distribution + sequence |
 
 The pipeline includes:
 - **Intelligent class merging** — rare cancer types (< 40 samples) → "OTHER"
+- **PCA compression** — 768-dim DNABERT-2 embeddings → 50 principal components (noise reduction)
+- **Class-balanced sample weights** — inverse frequency weighting for robust minority-class learning
 - **Repeated stratified CV** — 5-fold × 3 repeats for stable metric estimates
 - **Optional Optuna HPO** — 50-trial Bayesian hyperparameter search
 

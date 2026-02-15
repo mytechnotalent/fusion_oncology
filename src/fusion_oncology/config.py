@@ -138,6 +138,8 @@ class ProjectConfig:
     xgb_colsample_bytree: float = 0.8
     min_class_size: int = 40
     enable_hpo: bool = False
+    enable_feature_engineering: bool = True
+    bert_pca_dims: int = 50
 
     # ── Pathway enrichment ───────────────────────────────────────────────
     pathway_db: str = "kegg"  # "kegg" | "reactome"

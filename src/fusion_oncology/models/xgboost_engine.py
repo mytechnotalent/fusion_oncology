@@ -206,10 +206,13 @@ class XGBoostEngine:
         -------
         self
         """
-        X_aug = self.engineer_features(X)
+        if self.cfg.enable_feature_engineering:
+            X_aug = self.engineer_features(X)
+        else:
+            X_aug = X
         X_num = X_aug.select_dtypes(include=[np.number])
         self._feature_names = list(X_num.columns)
-        self._engineered = True
+        self._engineered = self.cfg.enable_feature_engineering
         y_enc = self.label_encoder.fit_transform(y)
         self.model = self._build_classifier()
         weights = self._compute_sample_weights(y_enc)
@@ -510,7 +513,10 @@ class XGBoostEngine:
         import optuna
 
         optuna.logging.set_verbosity(optuna.logging.WARNING)
-        X_aug = self.engineer_features(X)
+        if self.cfg.enable_feature_engineering:
+            X_aug = self.engineer_features(X)
+        else:
+            X_aug = X
         X_num = X_aug.select_dtypes(include=[np.number])
         y_merged = self.merge_rare_classes(y, self.cfg.min_class_size)
         y_enc = LabelEncoder().fit_transform(y_merged)
@@ -558,7 +564,10 @@ class XGBoostEngine:
         dict[str, float]
             Keys ``mean_accuracy`` and ``std_accuracy``.
         """
-        X_aug = self.engineer_features(X)
+        if self.cfg.enable_feature_engineering:
+            X_aug = self.engineer_features(X)
+        else:
+            X_aug = X
         X_num = X_aug.select_dtypes(include=[np.number])
         y_merged = self.merge_rare_classes(y, self.cfg.min_class_size)
         X_num, y_merged = self._filter_rare_classes(X_num, y_merged, folds)

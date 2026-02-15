@@ -22,6 +22,8 @@ def test_defaults():
     assert cfg.xgb_n_estimators == 1000
     assert cfg.min_class_size == 40
     assert cfg.enable_hpo is False
+    assert cfg.enable_feature_engineering is True
+    assert cfg.bert_pca_dims == 50
 
 
 def test_override(tmp_path):

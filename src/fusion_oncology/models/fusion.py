@@ -443,7 +443,10 @@ class FusionEngine:
         """Build the fusion feature matrix combining both modalities.
 
         Concatenates the original drug-sensitivity features with
-        768-dim sensitivity-weighted DNABERT-2 embeddings per sample.
+        PCA-reduced sensitivity-weighted DNABERT-2 embeddings per
+        sample.  The full 768-dim embedding space is compressed to
+        ``cfg.bert_pca_dims`` principal components to reduce noise
+        while preserving the dominant variance directions.
 
         Parameters
         ----------
@@ -455,15 +458,31 @@ class FusionEngine:
         Returns
         -------
         pd.DataFrame
-            Combined feature matrix with ``N + 768`` columns.
+            Combined feature matrix with ``N + pca_dims`` columns.
         """
+        from sklearn.decomposition import PCA
+
         emb_matrix = self._build_embedding_matrix(gene_list, self._gene_embeddings)
         sensitivity = self._extract_sensitivity_values(X, gene_list)
         weighted = self._compute_weighted_embeddings(sensitivity, emb_matrix)
         normed = self._normalise_embeddings(weighted)
-        emb_dim = emb_matrix.shape[1]
-        emb_cols = [f"BERT_emb_{i}" for i in range(emb_dim)]
-        emb_df = pd.DataFrame(normed, index=X.index, columns=emb_cols)
+        # PCA compression: 768 → bert_pca_dims to reduce noise
+        n_components = min(
+            self.cfg.bert_pca_dims,
+            normed.shape[1],
+            normed.shape[0],
+        )
+        pca = PCA(n_components=n_components, random_state=42)
+        reduced = pca.fit_transform(normed)
+        explained = pca.explained_variance_ratio_.sum()
+        logger.info(
+            "PCA: %d → %d dims (%.1f%% variance retained)",
+            normed.shape[1],
+            n_components,
+            explained * 100,
+        )
+        emb_cols = [f"BERT_pca_{i}" for i in range(n_components)]
+        emb_df = pd.DataFrame(reduced, index=X.index, columns=emb_cols)
         return pd.concat([X, emb_df], axis=1)
 
     def _train_fusion_xgboost(
