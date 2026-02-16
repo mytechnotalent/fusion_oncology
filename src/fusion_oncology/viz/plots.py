@@ -171,7 +171,7 @@ def _draw_heatmap(X: pd.DataFrame, present: list[str], max_samples: int) -> plt.
     Parameters
     ----------
     X : pd.DataFrame
-        Expression matrix (samples × genes).
+        Expression matrix (samples x genes).
     present : list[str]
         Gene columns that exist in *X*.
     max_samples : int
@@ -201,7 +201,7 @@ def expression_heatmap(
     Parameters
     ----------
     X : pd.DataFrame
-        Expression matrix (samples × genes).
+        Expression matrix (samples x genes).
     y : pd.Series
         Cancer-type labels (used for row colouring).
     top_genes : list[str]

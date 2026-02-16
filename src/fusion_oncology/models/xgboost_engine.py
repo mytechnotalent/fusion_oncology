@@ -198,7 +198,7 @@ class XGBoostEngine:
         Parameters
         ----------
         X : pd.DataFrame
-            Gene-expression features (samples × genes).
+            Gene-expression features (samples x genes).
         y : pd.Series
             Cancer-type labels.
 
@@ -215,6 +215,14 @@ class XGBoostEngine:
         self._engineered = self.cfg.enable_feature_engineering
         y_enc = self.label_encoder.fit_transform(y)
         self.model = self._build_classifier()
+        # XGBoost >=3.2 no longer auto-infers num_class for binary tasks
+        # when objective is multi:softprob.  Switch to binary:logistic.
+        n_classes = len(np.unique(y_enc))
+        if n_classes == 2:
+            self.model.set_params(
+                objective="binary:logistic",
+                eval_metric="logloss",
+            )
         weights = self._compute_sample_weights(y_enc)
         self.model.fit(X_num, y_enc, sample_weight=weights)
         n, d = self.cfg.xgb_n_estimators, self.cfg.xgb_max_depth
@@ -608,7 +616,7 @@ class XGBoostEngine:
             When ``self.model`` is ``None``.
         """
         if self.model is None:
-            raise RuntimeError("Model not fitted yet – call .fit() first")
+            raise RuntimeError("Model not fitted yet - call .fit() first")
 
     def top_genes(self, k: int | None = None) -> dict[str, float]:
         """Return the *k* most important genes by XGBoost gain score.

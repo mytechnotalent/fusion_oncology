@@ -119,7 +119,7 @@ def _load_data(cfg: ProjectConfig) -> tuple:
     console.print("[cyan]Ingesting TCGA Pan-Cancer data …[/cyan]")
     ingestor = DataIngestion(cfg)
     X, y = ingestor.get_patient_data()
-    msg = f"  Loaded {X.shape[0]} samples × {X.shape[1]} genes, {y.nunique()} cancer types"
+    msg = f"  Loaded {X.shape[0]} samples x {X.shape[1]} genes, {y.nunique()} cancer types"
     console.print(msg)
     return X, y
 
@@ -305,7 +305,7 @@ def ingest(log_level: str) -> None:
     cfg = ProjectConfig()
     ing = DataIngestion(cfg)
     X, y = ing.get_patient_data()
-    console.print(f"[green]Cached {X.shape[0]} samples × {X.shape[1]} genes[/green]")
+    console.print(f"[green]Cached {X.shape[0]} samples x {X.shape[1]} genes[/green]")
 
 
 # ── report ───────────────────────────────────────────────────────────────

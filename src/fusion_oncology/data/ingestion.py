@@ -250,7 +250,7 @@ class DataIngestion:
         self.cache.save_dataframe("X_clean", X)
         self.cache.save_dataframe("y_clean", y.to_frame())
         logger.info(
-            "Ingested %d samples × %d genes, %d cancer types",
+            "Ingested %d samples x %d genes, %d cancer types",
             X.shape[0],
             X.shape[1],
             y.nunique(),
@@ -265,7 +265,7 @@ class DataIngestion:
         Returns
         -------
         X : pd.DataFrame
-            Gene-expression feature matrix  (samples × genes).
+            Gene-expression feature matrix  (samples x genes).
         y : pd.Series
             Cancer-type labels aligned with X.
         """

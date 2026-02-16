@@ -38,6 +38,7 @@ dependencies = [
     "lifelines>=0.28",
     "pyarrow>=14.0",
     "optuna>=3.6",
+    "shap>=0.46",
 ]
 
 [project.optional-dependencies]
@@ -76,6 +77,8 @@ ignore = ["ANN401"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+timeout = 120
+timeout_method = "thread"
 markers = [
     "slow: marks tests that download data or run models (deselect with '-m \"not slow\"')",
     "integration: marks integration tests requiring network access",

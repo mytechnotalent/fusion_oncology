@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class InteractionNetwork:
-    """Drug–target–pathway interaction graph.
+    """Drug-target-pathway interaction graph.
 
     Builds a tripartite graph with three node types (drugs, genes,
     pathways) and edges representing known interactions.  Supports

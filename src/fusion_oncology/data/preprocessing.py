@@ -75,7 +75,7 @@ def log_normalise(X: pd.DataFrame) -> pd.DataFrame:
     """
     numeric = X.select_dtypes(include=[np.number])
     result = np.log2(numeric + 1)
-    logger.info("Log-normalised %d × %d matrix", *result.shape)
+    logger.info("Log-normalised %d x %d matrix", *result.shape)
     return result
 
 
@@ -105,7 +105,7 @@ def reduce_pca(X: pd.DataFrame, n_components: int = 2) -> pd.DataFrame:
     Parameters
     ----------
     X : pd.DataFrame
-        Expression matrix (samples × genes).
+        Expression matrix (samples x genes).
     n_components : int
         Number of principal components to retain (default 2).
 

@@ -235,7 +235,7 @@ class DigitalTwin:
         """
         self._regimens.append(regimen)
         logger.info(
-            "Added regimen: %s (efficacy=%.3f, days %d–%d)",
+            "Added regimen: %s (efficacy=%.3f, days %d-%d)",
             regimen.name,
             regimen.efficacy,
             regimen.start_day,
@@ -245,7 +245,7 @@ class DigitalTwin:
     def _growth_rate(self, population: float) -> float:
         """Compute Gompertzian growth rate.
 
-        dN/dt = r × N × ln(K/N), where r is the growth rate constant,
+        dN/dt = r x N x ln(K/N), where r is the growth rate constant,
         K is the carrying capacity, and N is the current population.
 
         Parameters

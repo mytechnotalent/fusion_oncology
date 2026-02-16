@@ -158,6 +158,7 @@ def _make_mock_engine(cfg):
         engine = DNABERTEngine(cfg)
     engine._tokenizer = _build_mock_tokenizer(cfg)
     engine._model = _build_mock_model()
+    engine.device = "cpu"  # Force CPU regardless of detection
     return engine
 
 
@@ -176,8 +177,8 @@ def _build_mock_tokenizer(cfg):
     """
     tok = MagicMock()
     tok.side_effect = lambda *a, **kw: {
-        "input_ids": torch.ones(1, cfg.max_seq_len, dtype=torch.long),
-        "attention_mask": torch.ones(1, cfg.max_seq_len, dtype=torch.long),
+        "input_ids": torch.ones(1, cfg.max_seq_len, dtype=torch.long, device="cpu"),
+        "attention_mask": torch.ones(1, cfg.max_seq_len, dtype=torch.long, device="cpu"),
     }
     return tok
 
@@ -191,7 +192,7 @@ def _build_mock_model():
         A model mock whose __call__ returns a tuple of (hidden, pooler).
     """
     model = MagicMock()
-    hidden = torch.randn(1, 512, 768)
+    hidden = torch.randn(1, 512, 768, device="cpu")
     model.side_effect = lambda **kw: (hidden, None)
     return model
 
@@ -275,8 +276,8 @@ def _build_batch_mock_tokenizer(cfg):
     """
     tok = MagicMock()
     tok.side_effect = lambda *a, **kw: {
-        "input_ids": torch.ones(2, cfg.max_seq_len, dtype=torch.long),
-        "attention_mask": torch.ones(2, cfg.max_seq_len, dtype=torch.long),
+        "input_ids": torch.ones(2, cfg.max_seq_len, dtype=torch.long, device="cpu"),
+        "attention_mask": torch.ones(2, cfg.max_seq_len, dtype=torch.long, device="cpu"),
     }
     return tok
 
@@ -291,7 +292,7 @@ def _build_batch_mock_model():
         with batch dimension 2.
     """
     model = MagicMock()
-    hidden = torch.randn(2, 512, 768)
+    hidden = torch.randn(2, 512, 768, device="cpu")
     model.side_effect = lambda **kw: (hidden, None)
     return model
 
@@ -318,6 +319,7 @@ def _make_batch_engine(cfg):
         engine = DNABERTEngine(cfg)
     engine._tokenizer = _build_batch_mock_tokenizer(cfg)
     engine._model = _build_batch_mock_model()
+    engine.device = "cpu"
     return engine
 
 

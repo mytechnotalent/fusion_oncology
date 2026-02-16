@@ -110,7 +110,7 @@ class ArtifactCache:
             The deserialised DataFrame.
         """
         path = self._path(key)
-        logger.info("Cache HIT  – loading %s", path.name)
+        logger.info("Cache HIT  - loading %s", path.name)
         return pd.read_parquet(path)
 
     def save_dataframe(self, key: str, df: pd.DataFrame) -> None:
@@ -125,7 +125,7 @@ class ArtifactCache:
         """
         path = self._path(key)
         df.to_parquet(path, index=False)
-        logger.info("Cache SAVE – %s  (%d rows)", path.name, len(df))
+        logger.info("Cache SAVE - %s  (%d rows)", path.name, len(df))
 
     # ── numpy array cache ────────────────────────────────────────────────
 
@@ -158,7 +158,7 @@ class ArtifactCache:
             The deserialised array.
         """
         path = self._path(key, ".npy")
-        logger.info("Cache HIT  – loading %s", path.name)
+        logger.info("Cache HIT  - loading %s", path.name)
         return np.load(path)
 
     def save_array(self, key: str, arr: np.ndarray) -> None:
@@ -173,7 +173,7 @@ class ArtifactCache:
         """
         path = self._path(key, ".npy")
         np.save(path, arr)
-        logger.info("Cache SAVE – %s", path.name)
+        logger.info("Cache SAVE - %s", path.name)
 
     # ── raw bytes cache (zip files, etc.) ────────────────────────────────
 
@@ -206,7 +206,7 @@ class ArtifactCache:
             The raw byte content.
         """
         path = self._path(key, ".bin")
-        logger.info("Cache HIT  – loading %s", path.name)
+        logger.info("Cache HIT  - loading %s", path.name)
         return path.read_bytes()
 
     def save_bytes(self, key: str, data: bytes) -> None:
@@ -221,7 +221,7 @@ class ArtifactCache:
         """
         path = self._path(key, ".bin")
         path.write_bytes(data)
-        logger.info("Cache SAVE – %s  (%d bytes)", path.name, len(data))
+        logger.info("Cache SAVE - %s  (%d bytes)", path.name, len(data))
 
     # ── JSON metadata cache ──────────────────────────────────────────────
 
@@ -284,5 +284,5 @@ class ArtifactCache:
             if p.is_file():
                 p.unlink()
                 count += 1
-        logger.info("Cache CLEAR – removed %d files", count)
+        logger.info("Cache CLEAR - removed %d files", count)
         return count

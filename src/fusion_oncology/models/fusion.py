@@ -1,5 +1,5 @@
 """
-Fusion Engine – true multi-modal fusion of XGBoost and DNABERT-2.
+Fusion Engine - true multi-modal fusion of XGBoost and DNABERT-2.
 
 This is the central orchestrator: it trains an initial XGBoost for gene
 ranking, computes DNABERT-2 embeddings for the top genes, then builds
@@ -50,7 +50,7 @@ class FusionEngine:
         stratified 5-fold CV — a single model that jointly learns from
         both modalities.
     6.  Compute mutational instability via embedding drift and derive
-        the Fusion Index (importance × instability × 1000).
+        the Fusion Index (importance x instability x 1000).
     7.  Enrich against KEGG / Reactome pathways.
     8.  Annotate drug targets and druggability.
     9.  Score resistance risk per gene.
@@ -355,7 +355,7 @@ class FusionEngine:
         gene_list: list[str],
         embeddings: dict[str, np.ndarray],
     ) -> np.ndarray:
-        """Stack gene embeddings into a (K × emb_dim) matrix.
+        """Stack gene embeddings into a (K x emb_dim) matrix.
 
         Parameters
         ----------
@@ -673,7 +673,7 @@ class FusionEngine:
         """
         hdr = [
             "╔══════════════════════════════════════╗",
-            "║   FUSION ONCOLOGY – TARGET RANKING   ║",
+            "║   FUSION ONCOLOGY - TARGET RANKING   ║",
             "╠══════════════════════════════════════╣",
         ]
         hdr.extend(self._ranking_row(row) for _, row in self.results.iterrows())

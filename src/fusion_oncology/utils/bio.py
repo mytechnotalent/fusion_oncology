@@ -121,7 +121,7 @@ def _pad_short_sequence(gene: str, sequence: str) -> str:
     str
         Padded sequence with at least 200 bp total.
     """
-    logger.warning("Sequence for %s too short (%d bp) – padding", gene, len(sequence))
+    logger.warning("Sequence for %s too short (%d bp) - padding", gene, len(sequence))
     return sequence + _synthetic_sequence(gene=gene)
 
 

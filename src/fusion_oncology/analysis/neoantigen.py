@@ -300,7 +300,7 @@ def generate_mutant_peptides(
     mutant_aa : str
         Single-letter code of the mutant amino acid.
     peptide_lengths : tuple[int, ...]
-        Peptide lengths to generate (default 8–11-mers for MHC-I).
+        Peptide lengths to generate (default 8-11-mers for MHC-I).
 
     Returns
     -------
@@ -384,7 +384,7 @@ def score_mhc_binding(peptide: str) -> float:
     Parameters
     ----------
     peptide : str
-        Peptide sequence (8–11 amino acids).
+        Peptide sequence (8-11 amino acids).
 
     Returns
     -------

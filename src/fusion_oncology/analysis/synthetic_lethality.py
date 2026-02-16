@@ -115,7 +115,7 @@ class SyntheticLethalityDetector:
         Parameters
         ----------
         X : pd.DataFrame
-            Expression matrix (samples × genes).
+            Expression matrix (samples x genes).
         gene_a : str
             First gene symbol.
         gene_b : str
@@ -245,7 +245,7 @@ class SyntheticLethalityDetector:
         Parameters
         ----------
         X : pd.DataFrame
-            Expression matrix (samples × genes).
+            Expression matrix (samples x genes).
         target_genes : list[str]
             Genes to screen partners for (typically the top-K).
         threshold : float

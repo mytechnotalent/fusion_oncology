@@ -227,7 +227,7 @@ def load_cna(
     Returns
     -------
     pd.DataFrame
-        Gene × sample matrix with integer CNA values.
+        Gene x sample matrix with integer CNA values.
 
     Raises
     ------
@@ -237,7 +237,7 @@ def load_cna(
     if not Path(path).exists():
         raise FileNotFoundError(f"CNA file not found: {path}")
     df = pd.read_csv(path, sep="\t", index_col=0)
-    logger.info("Loaded CNA: %d genes × %d samples", df.shape[0], df.shape[1])
+    logger.info("Loaded CNA: %d genes x %d samples", df.shape[0], df.shape[1])
     return df
 
 
@@ -247,7 +247,7 @@ def _compute_cna_frequencies(cna: pd.DataFrame, n_samples: int) -> pd.DataFrame:
     Parameters
     ----------
     cna : pd.DataFrame
-        Gene × sample CNA matrix.
+        Gene x sample CNA matrix.
     n_samples : int
         Total number of samples.
 
@@ -270,7 +270,7 @@ def cna_summary(cna: pd.DataFrame) -> pd.DataFrame:
     Parameters
     ----------
     cna : pd.DataFrame
-        Gene × sample CNA matrix from :func:`load_cna`.
+        Gene x sample CNA matrix from :func:`load_cna`.
 
     Returns
     -------
@@ -301,7 +301,7 @@ def load_methylation(
     Returns
     -------
     pd.DataFrame
-        Probe × sample matrix of beta values.
+        Probe x sample matrix of beta values.
 
     Raises
     ------
@@ -311,7 +311,7 @@ def load_methylation(
     if not Path(path).exists():
         raise FileNotFoundError(f"Methylation file not found: {path}")
     df = pd.read_csv(path, sep="\t", index_col=0)
-    logger.info("Loaded methylation: %d probes × %d samples", df.shape[0], df.shape[1])
+    logger.info("Loaded methylation: %d probes x %d samples", df.shape[0], df.shape[1])
     return df
 
 
@@ -321,7 +321,7 @@ def _compute_grouped_stats(grouped: pd.DataFrame) -> pd.DataFrame:
     Parameters
     ----------
     grouped : pd.DataFrame
-        Gene × cancer-type mean beta-value matrix.
+        Gene x cancer-type mean beta-value matrix.
 
     Returns
     -------
@@ -347,7 +347,7 @@ def differential_methylation(
     Parameters
     ----------
     methylation : pd.DataFrame
-        Probe × sample beta-value matrix.
+        Probe x sample beta-value matrix.
     labels : pd.Series
         Cancer-type labels aligned with sample columns.
     gene_col : str
@@ -522,7 +522,7 @@ class MultiOmicsIntegrator:
         """
         rows = [self._gene_features(gene) for gene in genes]
         result = pd.DataFrame(rows)
-        logger.info("Built multi-omics feature matrix: %d genes × %d features", *result.shape)
+        logger.info("Built multi-omics feature matrix: %d genes x %d features", *result.shape)
         return result
 
     def enrich_fusion_results(

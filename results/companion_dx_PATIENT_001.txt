@@ -1,0 +1,70 @@
+========================================================================
+COMPANION DIAGNOSTIC REPORT
+========================================================================
+Patient ID:   PATIENT_001
+Cancer Type:  LUAD
+TMB:          3 mutations
+Generated:    2026-02-15T22:54:20.216449+00:00
+
+────────────────────────────────────────────────────────────────────────
+ACTIONABLE MUTATIONS
+────────────────────────────────────────────────────────────────────────
+  [I] EGFR L858R — FDA-approved therapy available.
+  [I] KRAS G12C — FDA-approved therapy available.
+  [III] TP53 R175H — Preclinical evidence of druggability.
+
+────────────────────────────────────────────────────────────────────────
+TREATMENT RECOMMENDATIONS
+────────────────────────────────────────────────────────────────────────
+  #1  Erlotinib (targeted)  [90% confidence]
+       → Approved for NSCLC, Pancreatic targeting EGFR.
+  #2  Gefitinib (targeted)  [90% confidence]
+       → Approved for NSCLC targeting EGFR.
+  #3  Cetuximab (targeted)  [90% confidence]
+       → Approved for CRC, HNSCC targeting EGFR.
+  #4  Adagrasib (targeted)  [90% confidence]
+       → Approved for NSCLC (G12C) targeting KRAS.
+  #5  Capmatinib (synthetic_lethality)  [65% confidence]
+       → Loss of EGFR creates dependency on MET — targeting MET may be selectively lethal to tumour.
+  #6  Tepotinib (synthetic_lethality)  [65% confidence]
+       → Loss of EGFR creates dependency on MET — targeting MET may be selectively lethal to tumour.
+  #7  Adavosertib (synthetic_lethality)  [65% confidence]
+       → Loss of TP53 creates dependency on WEE1 — targeting WEE1 may be selectively lethal to tumour.
+  #8  Osimertinib (targeted)  [27% confidence] ⚠ RESISTANCE
+       → Approved for NSCLC (T790M) targeting EGFR.
+  #9  Sotorasib (targeted)  [27% confidence] ⚠ RESISTANCE
+       → Approved for NSCLC (G12C) targeting KRAS.
+
+────────────────────────────────────────────────────────────────────────
+RESISTANCE ALERTS
+────────────────────────────────────────────────────────────────────────
+  ⚠ EGFR L858R: T790M gatekeeper mutation
+    Strategy: Switch to Osimertinib (3rd-gen TKI)
+  ⚠ EGFR L858R: C797S mutation
+    Strategy: Combination with allosteric EGFR inhibitor
+  ⚠ EGFR L858R: MET amplification bypass
+    Strategy: Add MET inhibitor (Capmatinib/Tepotinib)
+  ⚠ EGFR L858R: Histological transformation (SCLC)
+    Strategy: Switch to platinum-etoposide chemotherapy
+  ⚠ KRAS G12C: KRAS G12C secondary mutations (Y96D)
+    Strategy: Next-generation KRAS inhibitor
+  ⚠ KRAS G12C: KRAS amplification
+    Strategy: Combination with SHP2 inhibitor
+  ⚠ KRAS G12C: Upstream RTK activation (EGFR/FGFR)
+    Strategy: Add upstream RTK inhibitor
+  ⚠ KRAS G12C: PI3K pathway activation
+    Strategy: Add PI3K inhibitor
+
+────────────────────────────────────────────────────────────────────────
+SYNTHETIC LETHALITY OPPORTUNITIES
+────────────────────────────────────────────────────────────────────────
+  EGFR → MET
+    Loss of EGFR creates dependency on MET — targeting MET may be selectively lethal to tumour.
+  TP53 → WEE1
+    Loss of TP53 creates dependency on WEE1 — targeting WEE1 may be selectively lethal to tumour.
+  TP53 → CHK1
+    Loss of TP53 creates dependency on CHK1 — targeting CHK1 may be selectively lethal to tumour.
+  KRAS → STK33
+    Loss of KRAS creates dependency on STK33 — targeting STK33 may be selectively lethal to tumour.
+
+========================================================================

@@ -45,7 +45,7 @@ _COMPLEMENTS: dict[str, str] = {
     "C": "G",
     "N": "N",
 }
-"""Watson–Crick complement lookup table."""
+"""Watson-Crick complement lookup table."""
 
 
 # ── Helper functions ───────────────────────────────────────────────

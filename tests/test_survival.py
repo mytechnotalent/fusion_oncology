@@ -1,6 +1,6 @@
 """Tests for the survival analysis module.
 
-Covers stratification, Kaplan–Meier fitting, log-rank testing,
+Covers stratification, Kaplan-Meier fitting, log-rank testing,
 and graceful handling of missing lifelines.
 """
 

@@ -1,7 +1,7 @@
 """
 Survival analysis hooks.
 
-Provides Kaplan–Meier estimation and log-rank testing against gene
+Provides Kaplan-Meier estimation and log-rank testing against gene
 expression strata.  Requires that the input dataframe includes
 ``OS_MONTHS`` (overall survival time) and ``OS_STATUS`` (event flag)
 columns alongside gene expression values.
@@ -26,12 +26,12 @@ try:
     _HAS_LIFELINES = True
 except ImportError:  # graceful degradation
     _HAS_LIFELINES = False
-    logger.info("lifelines not installed – survival analysis disabled")
+    logger.info("lifelines not installed - survival analysis disabled")
 
 
 class SurvivalAnalyzer:
     """
-    Kaplan–Meier survival analysis stratified by gene expression.
+    Kaplan-Meier survival analysis stratified by gene expression.
 
     Parameters
     ----------
@@ -211,7 +211,7 @@ class SurvivalAnalyzer:
         kmf_low: KaplanMeierFitter,
         p_value: float,
     ) -> dict[str, Any]:
-        """Assemble the Kaplan–Meier result dictionary.
+        """Assemble the Kaplan-Meier result dictionary.
 
         Parameters
         ----------
@@ -240,7 +240,7 @@ class SurvivalAnalyzer:
         gene: str,
         result: dict[str, Any],
     ) -> None:
-        """Log a summary of the Kaplan–Meier analysis.
+        """Log a summary of the Kaplan-Meier analysis.
 
         Parameters
         ----------
@@ -262,7 +262,7 @@ class SurvivalAnalyzer:
         clinical: pd.DataFrame,
         gene: str,
     ) -> dict[str, Any]:
-        """Fit Kaplan–Meier curves for high vs low expression and run
+        """Fit Kaplan-Meier curves for high vs low expression and run
         the log-rank test.
 
         Parameters

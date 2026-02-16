@@ -19,7 +19,6 @@ from fusion_oncology.utils.bio import (
     gc_content,
 )
 
-
 # ── gc_content ───────────────────────────────────────────────────────────
 
 

@@ -2,11 +2,43 @@
 
 from __future__ import annotations
 
+import os
+
+# ── Global thread-pool and device guards ─────────────────────────────────
+# On macOS, XGBoost ships its own libomp while PyTorch ships another.
+# When both are loaded in a single pytest session the duplicate OpenMP
+# runtimes deadlock on fork / thread-pool init.  Setting these env vars
+# *before* any C extension import avoids the conflict.
+
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+os.environ.setdefault("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.0")
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from fusion_oncology.config import ProjectConfig
+
+
+@pytest.fixture(autouse=True)
+def _force_cpu_torch(monkeypatch):
+    """Ensure all torch operations use CPU during tests.
+
+    This prevents MPS backend deadlocks that occur when many test
+    files share a single pytest session on Apple Silicon.
+    """
+    try:
+        import torch
+
+        monkeypatch.setenv("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.0")
+        monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "")
+        # Patch at string-lookup level to avoid initialising backends
+        monkeypatch.setattr("torch.cuda.is_available", lambda: False)
+        monkeypatch.setattr("torch.backends.mps.is_available", lambda: False)
+    except (ImportError, AttributeError):
+        pass
 
 
 @pytest.fixture()
@@ -42,7 +74,7 @@ def synthetic_expression():
     Returns
     -------
     tuple[pd.DataFrame, pd.Series]
-        ``(X, y)`` where *X* is 60 samples × 50 genes and *y*
+        ``(X, y)`` where *X* is 60 samples x 50 genes and *y*
         contains three cancer-type labels (BRCA, LUAD, KIRC).
     """
     rng = np.random.default_rng(0)

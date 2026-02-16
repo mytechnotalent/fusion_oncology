@@ -6,7 +6,7 @@
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                              CLI (click)                                 │
 │  fusion-oncology run | ingest | report | evidence | resistance |         │
-│                  simulate | companion-dx | clear-cache                    │
+│                  simulate | companion-dx | clear-cache                   │
 └───────────┬──────────────────────────────────────────────────────────────┘
             │
             ▼
@@ -53,8 +53,8 @@
 | `models/digital_twin.py`           | Gompertzian ODE tumour simulation, RECIST, regimen comparison |
 | `analysis/instability.py`          | Random point-mutation + cosine-drift scoring                  |
 | `analysis/pathway.py`              | Curated pathway lookup + enrichment summary                   |
-| `analysis/drug_target.py`          | Curated drug–target database + annotation                     |
-| `analysis/survival.py`             | Kaplan–Meier + log-rank (requires clinical data)              |
+| `analysis/drug_target.py`          | Curated drug-target database + annotation                     |
+| `analysis/survival.py`             | Kaplan-Meier + log-rank (requires clinical data)              |
 | `analysis/clinical_evidence.py`    | OpenTargets, CIViC, ClinicalTrials.gov API queries            |
 | `analysis/synthetic_lethality.py`  | 24 curated SL pairs + expression anti-correlation screening   |
 | `analysis/neoantigen.py`           | Codon translation, peptide generation, MHC-I binding          |
@@ -97,7 +97,7 @@ UCI Archive (ZIP)
                     (N random mutations → cosine drift)
                               │
                               ▼
-                    Fusion Index = importance × instability × 1000
+                    Fusion Index = importance x instability x 1000
                               │
           ┌───────────────────┼───────────────────┐
           ▼                   ▼                   ▼
@@ -129,32 +129,32 @@ UCI Archive (ZIP)
 
 | API                | Endpoint                                      | Purpose                             |
 | ------------------ | --------------------------------------------- | ----------------------------------- |
-| OpenTargets        | `api.platform.opentargets.org/api/v4/graphql` | Gene–disease associations, scores   |
+| OpenTargets        | `api.platform.opentargets.org/api/v4/graphql` | Gene-disease associations, scores   |
 | CIViC              | `civicdb.org/api/graphql`                     | Clinical interpretation of variants |
 | ClinicalTrials.gov | `clinicaltrials.gov/api/v2/studies`           | Active clinical trial matching      |
 | NCBI Entrez        | `eutils.ncbi.nlm.nih.gov/entrez/eutils/`      | RefSeq gene sequence retrieval      |
 
 ## Key Design Decisions
 
-1. **Lazy model loading** – DNABERT-2 is only loaded when the first
+1. **Lazy model loading** - DNABERT-2 is only loaded when the first
    embedding is requested, keeping CLI startup fast.
 
-2. **Disk caching** – The ~80 MB TCGA download is cached as raw bytes;
+2. **Disk caching** - The ~80 MB TCGA download is cached as raw bytes;
    cleaned DataFrames are cached as Parquet.  Cache can be cleared via
    `fusion-oncology clear-cache`.
 
-3. **Offline pathway / drug / resistance databases** – Curated dictionaries
+3. **Offline pathway / drug / resistance databases** - Curated dictionaries
    are embedded in the source so the tool works without network access
    beyond the initial data download and Entrez lookups.  Clinical evidence
    and trial queries are optional enhancements.
 
-4. **Graceful degradation** – Missing packages (`lifelines`) or failed
+4. **Graceful degradation** - Missing packages (`lifelines`) or failed
    network calls produce warnings rather than hard crashes.
 
-5. **Composable architecture** – Each analysis module exposes both a
+5. **Composable architecture** - Each analysis module exposes both a
    standalone API and an `annotate(df)` method for pipeline integration,
    letting modules be used independently or orchestrated through FusionEngine.
 
-6. **Patient-centric design** – CompanionDiagnostic + DigitalTwin enable
+6. **Patient-centric design** - CompanionDiagnostic + DigitalTwin enable
    translating population-level genomic findings into individualised
    treatment strategies with AMP/ASCO/CAP-tiered actionability.

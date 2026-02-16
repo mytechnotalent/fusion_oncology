@@ -74,7 +74,7 @@ def test_standard_scale_zero_mean():
 def test_reduce_pca_shape():
     """Verify PCA reduction returns the requested component count.
 
-    Reduces a 30×10 matrix to 2 components and asserts the output
+    Reduces a 30x10 matrix to 2 components and asserts the output
     shape is (30, 2) with columns named ``PC1`` and ``PC2``.
     """
     df = _make_df(rows=30, cols=10)
