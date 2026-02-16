@@ -6,9 +6,7 @@
 
 # Fusion Oncology
 
-Fusion Oncology is an end-to-end precision oncology platform spanning **44 source modules** and **19,000+ lines** of production code, validated by **528 automated tests** (37 test files, 9,400+ test lines).
-
-It builds a **multi-modal fusion model** -- a single XGBoost classifier trained on drug sensitivity features, 10 engineered distributional features, and PCA-compressed sensitivity-weighted DNABERT-2 sequence embeddings -- to prioritise therapeutic targets and generate standardised AMP/ASCO/CAP-tiered companion diagnostic reports. The pipeline includes intelligent class merging, class-balanced sample weights, optional Optuna Bayesian hyperparameter optimisation, and repeated stratified cross-validation for metric stability.
+Fusion Oncology is an open-source precision oncology platform (**44 modules, 19,000+ lines, 528 tests**) that fuses XGBoost drug-sensitivity models with DNABERT-2 genomic embeddings into a joint feature space, then routes predictions through ODE digital-twin simulation, two-compartment PK/PD, RL dose optimisation, GNN interaction scoring, and Bayesian uncertainty quantification to produce confidence-scored, AMP/ASCO/CAP-tiered companion diagnostic reports.
 
 ---
 
@@ -507,6 +505,8 @@ make test-cov
 | `lifelines`              | Kaplan-Meier survival analysis           |
 | `requests`               | API queries (OpenTargets, CIViC, CT.gov) |
 | `pyarrow`                | Parquet file I/O for caching             |
+| `optuna`                 | Hyperparameter tuning (RL optimiser)     |
+| `shap`                   | Model interpretability explanations      |
 | `click` + `rich`         | CLI interface                            |
 
 ---
