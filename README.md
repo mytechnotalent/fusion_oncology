@@ -123,8 +123,8 @@ fusion_oncology/
     architecture.md
  src/fusion_oncology/
     __init__.py
-    config.py                    # Central dataclass (29 fields)
-    cli.py                       # Click CLI (8 commands)
+    config.py                   # Central dataclass (29 fields)
+    cli.py                      # Click CLI (8 commands)
     data/
        ingestion.py             # TCGA download + ZIP extraction
        preprocessing.py         # Variance filter, log-norm, PCA
@@ -167,7 +167,7 @@ fusion_oncology/
        bio.py                   # Entrez fetch, GC, CpG islands
        log.py                   # Logging setup
  tests/
-    conftest.py                  # Shared fixtures, OMP guard
+    conftest.py                 # Shared fixtures, OMP guard
     test_benchmark.py
     test_bio.py
     test_cache.py

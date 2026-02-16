@@ -11,15 +11,15 @@
 
 ## Table of Contents
 
-1. [Codebase Metrics](#1-codebase-metrics)
-2. [Test Suite — 528 / 528 Passing](#2-test-suite--528--528-passing)
-3. [Component 1 — XGBoost Drug-Sensitivity Engine](#3-component-1--xgboost-drug-sensitivity-engine)
-4. [Component 2 — DNABERT-2 Genomic Embedding Engine](#4-component-2--dnabert-2-genomic-embedding-engine)
-5. [Component 3 — Multi-Modal Fusion Pipeline](#5-component-3--multi-modal-fusion-pipeline)
-6. [Component 4 — Digital Twin Tumour Simulation](#6-component-4--digital-twin-tumour-simulation)
-7. [Component 5 — Resistance Modelling](#7-component-5--resistance-modelling)
-8. [Component 6 — Drug-Target Prioritisation & Network Pharmacology](#8-component-6--drug-target-prioritisation--network-pharmacology)
-9. [Component 7 — Clinical Evidence Integration](#9-component-7--clinical-evidence-integration)
+1.  [Codebase Metrics](#1-codebase-metrics)
+2.  [Test Suite — 528 / 528 Passing](#2-test-suite--528--528-passing)
+3.  [Component 1 — XGBoost Drug-Sensitivity Engine](#3-component-1--xgboost-drug-sensitivity-engine)
+4.  [Component 2 — DNABERT-2 Genomic Embedding Engine](#4-component-2--dnabert-2-genomic-embedding-engine)
+5.  [Component 3 — Multi-Modal Fusion Pipeline](#5-component-3--multi-modal-fusion-pipeline)
+6.  [Component 4 — Digital Twin Tumour Simulation](#6-component-4--digital-twin-tumour-simulation)
+7.  [Component 5 — Resistance Modelling](#7-component-5--resistance-modelling)
+8.  [Component 6 — Drug-Target Prioritisation & Network Pharmacology](#8-component-6--drug-target-prioritisation--network-pharmacology)
+9.  [Component 7 — Clinical Evidence Integration](#9-component-7--clinical-evidence-integration)
 10. [Component 8 — Pathway Enrichment](#10-component-8--pathway-enrichment)
 11. [Component 9 — Synthetic Lethality Detection](#11-component-9--synthetic-lethality-detection)
 12. [Component 10 — Neoantigen Prediction](#12-component-10--neoantigen-prediction)
@@ -487,8 +487,8 @@ Key observation: the tumour initially shrinks as the drug kills sensitive cells 
 === Regimen Comparison ===
           Regimen  Best_Day  Best_Response%  Final_Tumour  RECIST
 0       High_dose        13           58.39     1.77e+12      PR
-1  Combo_therapy        12           56.31     1.77e+12      PR
-2   Osimertinib           7            3.92     1.77e+12      SD
+1   Combo_therapy        12           56.31     1.77e+12      PR
+2     Osimertinib         7            3.92     1.77e+12      SD
 ```
 
 High-dose monotherapy achieves **Partial Response** (58.39% reduction at nadir on day 13), compared to standard-dose monotherapy achieving only Stable Disease. The combination regimen achieves comparable depth but with a different kinetic profile.
@@ -623,7 +623,7 @@ Total edges: 168
 Top-10 hub nodes:
                Node             Type  Degree  Centrality
 0    MAPK/ERK Signaling       pathway       8    0.041237
-1    p53 Tumor Suppression   pathway       7    0.036082
+1    p53 Tumor Suppression    pathway       7    0.036082
 2    DNA Damage Repair        pathway       6    0.030928
 3    EGFR                     gene          5    0.025773
 4    PI3K-Akt Signaling       pathway       5    0.025773
@@ -784,10 +784,10 @@ $ python proof_runner.py pathway
 
 === Pathway Database ===
 Pathways: 10
-  PI3K-Akt Signaling:       13 genes
-  MAPK/ERK Signaling:       13 genes
-  p53 Tumor Suppression:    14 genes
-  Wnt/β-catenin Signaling:  13 genes
+  PI3K-Akt Signaling:        13 genes
+  MAPK/ERK Signaling:        13 genes
+  p53 Tumor Suppression:     14 genes
+  Wnt/β-catenin Signaling:   13 genes
   Notch Signaling:           12 genes
   Cell Cycle Regulation:     13 genes
   DNA Damage Repair:         14 genes
@@ -802,9 +802,9 @@ Input genes: `EGFR, BRAF, KRAS, TP53, BRCA1, PTEN, CDK4, VEGFA`
 
 ```
 Enrichment results:
-  PI3K-Akt Signaling:    1 hit  → [PTEN]
-  MAPK/ERK Signaling:    3 hits → [EGFR, BRAF, KRAS]
-  p53 Tumor Suppression: 1 hit  → [TP53]
+  PI3K-Akt Signaling:     1 hit  → [PTEN]
+  MAPK/ERK Signaling:     3 hits → [EGFR, BRAF, KRAS]
+  p53 Tumor Suppression:  1 hit  → [TP53]
   Cell Cycle Regulation:  1 hit  → [CDK4]
   DNA Damage Repair:      1 hit  → [BRCA1]
   Angiogenesis (VEGF):    1 hit  → [VEGFA]
@@ -1806,8 +1806,8 @@ its marginal contribution:
 
 ```bash
 === Methodology: HP Sensitivity ===
-  n_estimators range: 0.9534 – 0.9689 (Δ = 0.0155)
-  max_depth range:    0.9573 – 0.9699 (Δ = 0.0126)
+  n_estimators range:  0.9534 – 0.9689 (Δ = 0.0155)
+  max_depth range:     0.9573 – 0.9699 (Δ = 0.0126)
   learning_rate range: 0.9466 – 0.9699 (Δ = 0.0233)
 ```
 
