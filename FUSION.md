@@ -22,7 +22,7 @@ We train two XGBoost classifiers, one after the other. DNABERT-2 is NOT trained 
 
 ```
 MODEL 1:  XGBoost (Baseline)     trained FIRST, on drug-sensitivity features only
-          DNABERT-2               NOT trained — used as a frozen feature extractor between models
+          DNABERT-2              NOT trained — used as a frozen feature extractor between models
 MODEL 2:  XGBoost (Fusion)       trained SECOND, on drug-sensitivity + DNABERT-2 features combined
 ```
 
@@ -35,10 +35,10 @@ That's it. Two XGBoost classifiers. The first one goes first because Model 2 nee
 The raw GDSC dataset has rows like:
 
 ```
-COSMIC_ID  |  TCGA_DESC  |  TARGET         |  LN_IC50
-906826     |  BRCA       |  EGFR           |  2.14
+COSMIC_ID  |  TCGA_DESC  |  TARGET         |   LN_IC50
+906826     |  BRCA       |  EGFR           |   2.14
 906826     |  BRCA       |  BRAF, MAP2K1   |  -0.53
-687983     |  LUAD       |  ALK            |  1.87
+687983     |  LUAD       |  ALK            |   1.87
 ```
 
 Each row = one cell line tested against one drug. `TARGET` is the gene(s) that drug hits. `LN_IC50` is how sensitive the cell line was (lower = more sensitive to the drug).
@@ -184,7 +184,7 @@ Class balancing:
     Compute sample weights inversely proportional to class frequency.
     If "BRCA" has 100 samples and "SCLC" has 20 samples out of 968 total:
         weight_BRCA = 968 / (n_classes × 100)
-        weight_SCLC = 968 / (n_classes × 20)   ← higher weight
+        weight_SCLC = 968 / (n_classes × 20) ← higher weight
     This prevents XGBoost from ignoring rare cancer types.
 
 Train:
@@ -324,8 +324,8 @@ After this step we have:
 ```
 sequences = {
     "EGFR":   "ATGCGACCCTCCGGGACGGCCG...",    # ~5,000+ bp from NCBI
-    "BRAF":   "ATGCGGCGCTGAGCGGTGG...",        # ~2,800+ bp from NCBI
-    "ALK":    "ATGGAAGTTAAGGATGAAATG...",       # ~6,000+ bp from NCBI
+    "BRAF":   "ATGCGGCGCTGAGCGGTGG...",       # ~2,800+ bp from NCBI
+    "ALK":    "ATGGAAGTTAAGGATGAAATG...",     # ~6,000+ bp from NCBI
     ...20 genes total...
 }
 ```
@@ -573,11 +573,11 @@ After Model 2 trains, we score each top gene's "mutational instability." This me
 For each of the 20 top genes:
 
     1. Get the reference embedding:
-       ref_emb = DNABERT-2.embed(original_sequence)     # 768-dim vector
+       ref_emb = DNABERT-2.embed(original_sequence)          # 768-dim vector
     
     2. Repeat 30 times (cfg.fuzz_iterations=30):
        a. Introduce random point mutations:
-          n_mutations = max(3, len(sequence) // 100)     # ~1% mutation rate
+          n_mutations = max(3, len(sequence) // 100)         # ~1% mutation rate
           
           For n_mutations random positions:
               Replace the base with a DIFFERENT random base
@@ -585,11 +585,11 @@ For each of the 20 top genes:
               e.g., position 2103: G → T
               
        b. Embed the mutant:
-          mut_emb = DNABERT-2.embed(mutated_sequence)    # 768-dim vector
+          mut_emb = DNABERT-2.embed(mutated_sequence)        # 768-dim vector
           
        c. Compute cosine distance:
           similarity = cosine_similarity(ref_emb, mut_emb)   # value in [-1, 1]
-          drift = 1.0 - similarity                            # value in [0, 2]
+          drift = 1.0 - similarity                           # value in [0, 2]
           
           drift = 0.0  means the embedding didn't change at all
           drift = 1.0  means the vectors are orthogonal (very different)
@@ -669,8 +669,8 @@ Example:
     BRAF → "MAPK pathway reactivation (~50%)"
     
 Risk score = min(1.0, number_of_mechanisms × 0.2)
-    1 mechanism  → 0.2
-    3 mechanisms → 0.6
+    1  mechanism  → 0.2
+    3  mechanisms → 0.6
     5+ mechanisms → 1.0
     
 Result: "Resistance_Risk" column
@@ -741,9 +741,9 @@ Three cell populations tracked simultaneously:
 
 ```
 dS/dt = r·S·ln(K/S)  −  drug_kill·S  −  immune_kill·S·I  −  conversion·S
-         ↑ Gompertz      ↑ drugs kill   ↑ immune cells     ↑ some sensitive
-           growth          sensitive       kill sensitive     cells become
-                           cells           cells              resistant
+        ↑ Gompertz      ↑ drugs kill    ↑ immune cells     ↑ some sensitive
+          growth          sensitive       kill sensitive     cells become
+                          cells           cells              resistant
 
 dR/dt = r·R·ln(K/R)  −  0.3·immune_kill·R·I  +  conversion·S
          ↑ Gompertz      ↑ immune is less         ↑ gain from
@@ -826,7 +826,7 @@ TMB (Tumour Mutational Burden) = number of mutations = 12
 For each mutation:
     Look up that gene in the drug-target database
     
-    Tier I:    Gene has an FDA-approved drug          (e.g., EGFR → Erlotinib)
+    Tier I:    Gene has an FDA-approved drug           (e.g., EGFR → Erlotinib)
     Tier II:   Gene has a clinical-trial drug          (e.g., Phase II/III)
     Tier III:  Gene has any drug entry (preclinical)
     Tier IV:   No drug matches (variant of unknown significance, VUS)
@@ -864,48 +864,48 @@ WHAT OTHERS DID (before our project):
 WHAT WE DO (in this notebook):
 ──────────────────────────────────────────
 
-  1. LOAD DATA: Read GDSC CSVs, explode multi-target entries, pivot to matrix
-     Result: X (968 × ~200 genes), y (968 cancer-type labels)
+   1. LOAD DATA: Read GDSC CSVs, explode multi-target entries, pivot to matrix
+      Result: X (968 × ~200 genes), y (968 cancer-type labels)
 
-  2. FEATURE ENGINEERING: Add 10 row-level statistics to X
-     Result: X_augmented (968 × ~210)
+   2. FEATURE ENGINEERING: Add 10 row-level statistics to X
+      Result: X_augmented (968 × ~210)
 
-  3. TRAIN MODEL 1: Baseline XGBoost
-     Input:   X_augmented (~210 features)
-     Steps:   Optuna HPO (50 trials) → train → 15-fold CV → extract top 20 genes
-     Output:  top_genes dict, baseline CV metrics
-     Status:  DONE. Model used only for gene ranking, then FROZEN.
+   3. TRAIN MODEL 1: Baseline XGBoost
+      Input:   X_augmented (~210 features)
+      Steps:   Optuna HPO (50 trials) → train → 15-fold CV → extract top 20 genes
+      Output:  top_genes dict, baseline CV metrics
+      Status:  DONE. Model used only for gene ranking, then FROZEN.
 
-  4. DNABERT-2 FEATURE EXTRACTION (no training)
-     Input:   20 gene names
-     Steps:   Fetch DNA from NCBI → tokenize → forward pass → mean pool
-     Output:  20 embeddings of shape (768,)
-     Status:  DNABERT-2 weights NEVER updated. Frozen feature extractor.
+   4. DNABERT-2 FEATURE EXTRACTION (no training)
+      Input:   20 gene names
+      Steps:   Fetch DNA from NCBI → tokenize → forward pass → mean pool
+      Output:  20 embeddings of shape (768,)
+      Status:  DNABERT-2 weights NEVER updated. Frozen feature extractor.
 
-  5. BUILD FUSION FEATURES
-     Steps:
-       a. Stack embeddings into (20 × 768) matrix
-       b. Extract sensitivity values for 20 genes → (968 × 20)
-       c. Matrix multiply: (968 × 20) @ (20 × 768) = (968 × 768) weighted embeddings
-       d. L2-normalise each row
-       e. PCA compress: (968 × 768) → (968 × 64)
-       f. Concatenate with original features: (968 × ~210) + (968 × 64) = (968 × ~274)
-     Output:  X_fused (968 × ~274)
+   5. BUILD FUSION FEATURES
+      Steps:
+        a. Stack embeddings into (20 × 768) matrix
+        b. Extract sensitivity values for 20 genes → (968 × 20)
+        c. Matrix multiply: (968 × 20) @ (20 × 768) = (968 × 768) weighted embeddings
+        d. L2-normalise each row
+        e. PCA compress: (968 × 768) → (968 × 64)
+        f. Concatenate with original features: (968 × ~210) + (968 × 64) = (968 × ~274)
+      Output:  X_fused (968 × ~274)
 
-  6. TRAIN MODEL 2: Fusion XGBoost
-     Input:   X_fused (~274 features)
-     Steps:   Optuna HPO (50 trials) → train → 15-fold CV
-     Output:  fusion CV metrics
-     Compare: fusion_F1 vs baseline_F1 = the "fusion lift"
+   6. TRAIN MODEL 2: Fusion XGBoost
+      Input:   X_fused (~274 features)
+      Steps:   Optuna HPO (50 trials) → train → 15-fold CV
+      Output:  fusion CV metrics
+      Compare: fusion_F1 vs baseline_F1 = the "fusion lift"
 
-  7. SCORE INSTABILITY: For each top gene, mutate DNA 30 times, measure embedding drift
-     Output:  instability scores (one per gene)
+   7. SCORE INSTABILITY: For each top gene, mutate DNA 30 times, measure embedding drift
+      Output:  instability scores (one per gene)
 
-  8. COMPUTE FUSION INDEX: importance × instability × 1000
-     Output:  ranked list of 20 genes with Fusion Index scores
+   8. COMPUTE FUSION INDEX: importance × instability × 1000
+      Output:  ranked list of 20 genes with Fusion Index scores
 
-  9. ANNOTATE: Pathways, drugs, resistance, synthetic lethality, network pharmacology
-     Output:  enriched results DataFrame
+   9. ANNOTATE: Pathways, drugs, resistance, synthetic lethality, network pharmacology
+      Output:  enriched results DataFrame
 
   10. CLINICAL EVIDENCE: Query OpenTargets, CIViC, ClinicalTrials.gov APIs
       Output:  evidence scores for top 5 genes
