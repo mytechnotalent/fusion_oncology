@@ -119,16 +119,16 @@ For each cell line (row), compute 10 row-level statistics across all its gene co
 ```
 Cell line 906826 has values: [2.14, -0.53, 0.0, -0.53, ...]
 
-_row_mean   = mean of all values          → 0.27
-_row_std    = standard deviation           → 0.94
-_row_skew   = skewness (asymmetry)         → 1.12
-_row_kurt   = kurtosis (tail heaviness)    → 0.45
-_row_max    = maximum value                → 2.14
+_row_mean   = mean of all values           →  0.27
+_row_std    = standard deviation           →  0.94
+_row_skew   = skewness (asymmetry)         →  1.12
+_row_kurt   = kurtosis (tail heaviness)    →  0.45
+_row_max    = maximum value                →  2.14
 _row_min    = minimum value                → -0.53
-_row_range  = max - min                    → 2.67
-_row_median = median value                 → 0.00
-_row_iqr    = 75th percentile - 25th       → 0.53
-_row_cv     = std / |mean|                 → 3.48
+_row_range  = max - min                    →  2.67
+_row_median = median value                 →  0.00
+_row_iqr    = 75th percentile - 25th       →  0.53
+_row_cv     = std / |mean|                 →  3.48
 ```
 
 These are appended as 10 extra columns. Now X has ~210 columns instead of ~200.
