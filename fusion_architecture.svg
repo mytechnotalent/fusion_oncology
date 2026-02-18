@@ -1,0 +1,359 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 2500" width="1400" height="2500" font-family="Arial, Helvetica, sans-serif">
+
+  <!-- ARROWHEAD MARKERS (must come first) -->
+  <defs>
+    <marker id="aBlue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#3498db"/></marker>
+    <marker id="aOrange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#f39c12"/></marker>
+    <marker id="aGreen" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#27ae60"/></marker>
+    <marker id="aPurple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#8e44ad"/></marker>
+    <marker id="aRed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#d35400"/></marker>
+    <marker id="aGray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#555"/></marker>
+    <marker id="asOrange" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#e67e22"/></marker>
+    <marker id="asGreen" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#27ae60"/></marker>
+    <marker id="asRed" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#e74c3c"/></marker>
+    <marker id="asBlue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2980b9"/></marker>
+    <marker id="asPurple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#884ea0"/></marker>
+    <marker id="asYellow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#d4ac0d"/></marker>
+    <marker id="asGreenL" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#27ae60"/></marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1400" height="2500" fill="#fafbfc"/>
+
+  <!-- ============================================================ -->
+  <!-- TITLE                                                        -->
+  <!-- ============================================================ -->
+  <text x="700" y="45" text-anchor="middle" font-size="26" font-weight="bold" fill="#1a1a2e">Fusion Oncology – End-to-End Architecture</text>
+  <text x="700" y="72" text-anchor="middle" font-size="13" fill="#777">Two-stage XGBoost pipeline with frozen DNABERT-2 feature extraction</text>
+
+  <!-- ============================================================ -->
+  <!-- ROW 1: INPUTS  (y 100–230)                                   -->
+  <!-- ============================================================ -->
+  <text x="70" y="100" font-size="11" font-weight="bold" fill="#aaa" letter-spacing="3">INPUTS</text>
+
+  <!-- GDSC Data -->
+  <rect x="70" y="115" width="380" height="115" rx="8" fill="#e8f4fd" stroke="#3498db" stroke-width="2"/>
+  <text x="260" y="142" text-anchor="middle" font-size="14" font-weight="bold" fill="#2471a3">GDSC Drug Sensitivity Data</text>
+  <text x="260" y="162" text-anchor="middle" font-size="11" fill="#555">1,002 cancer cell lines</text>
+  <text x="260" y="178" text-anchor="middle" font-size="11" fill="#555">~200 gene target columns (LN_IC50)</text>
+  <text x="260" y="194" text-anchor="middle" font-size="11" fill="#555">Pivoted matrix → (968 × ~200)</text>
+  <text x="260" y="222" text-anchor="middle" font-size="10" fill="#999">Structured tabular data</text>
+
+  <!-- Cancer Labels -->
+  <rect x="510" y="115" width="380" height="115" rx="8" fill="#fef9e7" stroke="#f39c12" stroke-width="2"/>
+  <text x="700" y="142" text-anchor="middle" font-size="14" font-weight="bold" fill="#b7950b">Cancer Type Labels</text>
+  <text x="700" y="162" text-anchor="middle" font-size="11" fill="#555">TCGA_DESC per cell line</text>
+  <text x="700" y="178" text-anchor="middle" font-size="11" fill="#555">BRCA, LUAD, COREAD, SCLC, ...</text>
+  <text x="700" y="194" text-anchor="middle" font-size="11" fill="#555">Rare types merged to "OTHER"</text>
+  <text x="700" y="222" text-anchor="middle" font-size="10" fill="#999">Multi-class target (y)</text>
+
+  <!-- DNA Sequences -->
+  <rect x="950" y="115" width="380" height="115" rx="8" fill="#eafaf1" stroke="#27ae60" stroke-width="2"/>
+  <text x="1140" y="142" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e8449">Gene DNA Sequences</text>
+  <text x="1140" y="162" text-anchor="middle" font-size="11" fill="#555">Fetched from NCBI Entrez (RefSeq)</text>
+  <text x="1140" y="178" text-anchor="middle" font-size="11" fill="#555">Raw nucleotides: A, C, G, T</text>
+  <text x="1140" y="194" text-anchor="middle" font-size="11" fill="#555">Fallback: deterministic synthetic</text>
+  <text x="1140" y="222" text-anchor="middle" font-size="10" fill="#999">Unstructured sequence data</text>
+
+  <!-- Arrows from GDSC and Labels down to Feature Engineering -->
+  <line x1="260" y1="230" x2="260" y2="280" stroke="#3498db" stroke-width="2" marker-end="url(#aBlue)"/>
+  <line x1="700" y1="230" x2="700" y2="280" stroke="#f39c12" stroke-width="2" marker-end="url(#aOrange)"/>
+
+  <!-- ============================================================ -->
+  <!-- ROW 2: FEATURE ENGINEERING  (y 290–385)                      -->
+  <!-- ============================================================ -->
+  <text x="70" y="285" font-size="11" font-weight="bold" fill="#aaa" letter-spacing="3">FEATURE ENGINEERING</text>
+
+  <rect x="70" y="295" width="820" height="90" rx="8" fill="#f4ecf7" stroke="#8e44ad" stroke-width="2"/>
+  <text x="480" y="322" text-anchor="middle" font-size="14" font-weight="bold" fill="#6c3483">Feature Engineering (+10 Row Statistics)</text>
+  <text x="480" y="344" text-anchor="middle" font-size="10" fill="#555">_row_mean · _row_std · _row_skew · _row_kurt · _row_max · _row_min · _row_range · _row_median · _row_iqr · _row_cv</text>
+  <text x="480" y="372" text-anchor="middle" font-size="11" fill="#555">Output: X_augmented (968 × ~210 features)</text>
+
+  <!-- Arrow down to Model 1 -->
+  <line x1="480" y1="385" x2="480" y2="440" stroke="#8e44ad" stroke-width="2" marker-end="url(#aPurple)"/>
+
+  <!-- ============================================================ -->
+  <!-- ROW 3: MODEL 1 – BASELINE XGBOOST  (y 450–680)              -->
+  <!-- ============================================================ -->
+  <text x="70" y="440" font-size="11" font-weight="bold" fill="#aaa" letter-spacing="3">MODEL 1</text>
+
+  <rect x="70" y="450" width="820" height="230" rx="10" fill="#fff5eb" stroke="#e67e22" stroke-width="2.5"/>
+  <text x="90" y="478" font-size="15" font-weight="bold" fill="#ca6f1e">MODEL 1: Baseline XGBoost</text>
+
+  <!-- Inner boxes -->
+  <rect x="90" y="495" width="220" height="70" rx="6" fill="#fdebd0" stroke="#e67e22" stroke-width="1"/>
+  <text x="200" y="520" text-anchor="middle" font-size="12" font-weight="bold" fill="#a04000">Optuna HPO</text>
+  <text x="200" y="538" text-anchor="middle" font-size="10" fill="#666">50 trials</text>
+  <text x="200" y="553" text-anchor="middle" font-size="10" fill="#666">9 hyperparameters</text>
+
+  <rect x="340" y="495" width="240" height="70" rx="6" fill="#fdebd0" stroke="#e67e22" stroke-width="1"/>
+  <text x="460" y="520" text-anchor="middle" font-size="12" font-weight="bold" fill="#a04000">Train XGBClassifier</text>
+  <text x="460" y="538" text-anchor="middle" font-size="10" fill="#666">multi:softprob</text>
+  <text x="460" y="553" text-anchor="middle" font-size="10" fill="#666">Class-balanced weights</text>
+
+  <rect x="610" y="495" width="260" height="70" rx="6" fill="#fdebd0" stroke="#e67e22" stroke-width="1"/>
+  <text x="740" y="520" text-anchor="middle" font-size="12" font-weight="bold" fill="#a04000">Cross-Validate</text>
+  <text x="740" y="538" text-anchor="middle" font-size="10" fill="#666">RepeatedStratifiedKFold</text>
+  <text x="740" y="553" text-anchor="middle" font-size="10" fill="#666">5×3 = 15 folds, 6 metrics</text>
+
+  <!-- Arrows between inner boxes -->
+  <line x1="310" y1="530" x2="340" y2="530" stroke="#e67e22" stroke-width="1.5" marker-end="url(#asOrange)"/>
+  <line x1="580" y1="530" x2="610" y2="530" stroke="#e67e22" stroke-width="1.5" marker-end="url(#asOrange)"/>
+
+  <!-- Output dashed box -->
+  <rect x="90" y="585" width="780" height="80" rx="6" fill="#fff" stroke="#e67e22" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="480" y="608" text-anchor="middle" font-size="12" font-weight="bold" fill="#a04000">Output: Top 20 Genes by Feature Importance (Gain)</text>
+  <text x="480" y="628" text-anchor="middle" font-size="11" fill="#555">{"EGFR": 0.082, "BRAF": 0.064, "ALK": 0.051, "PIK3CA": 0.049, ...}</text>
+  <text x="480" y="650" text-anchor="middle" font-size="10" fill="#888">These 20 genes determine which DNA sequences DNABERT-2 will embed</text>
+
+  <!-- Arrow from Model 1 down -->
+  <line x1="480" y1="680" x2="480" y2="740" stroke="#e67e22" stroke-width="2" marker-end="url(#asOrange)"/>
+
+  <!-- Dashed green arrow from DNA Sequences input down the right side -->
+  <line x1="1140" y1="230" x2="1140" y2="760" stroke="#27ae60" stroke-width="2" stroke-dasharray="6,3"/>
+  <line x1="1140" y1="760" x2="905" y2="760" stroke="#27ae60" stroke-width="2" marker-end="url(#aGreen)"/>
+  <!-- Label on the vertical dashed arrow -->
+  <text x="1160" y="510" font-size="10" fill="#27ae60" transform="rotate(90, 1160, 510)">20 gene sequences fetched</text>
+
+  <!-- ============================================================ -->
+  <!-- ROW 4: DNABERT-2  (y 750–1000)                               -->
+  <!-- ============================================================ -->
+  <text x="70" y="742" font-size="11" font-weight="bold" fill="#aaa" letter-spacing="3">DNABERT-2 (FROZEN)</text>
+
+  <rect x="70" y="750" width="820" height="250" rx="10" fill="#eafaf1" stroke="#27ae60" stroke-width="2.5"/>
+  <text x="90" y="778" font-size="15" font-weight="bold" fill="#1e8449">DNABERT-2-117M (Frozen)</text>
+  <text x="90" y="796" font-size="10" fill="#888">zhihan1996/DNABERT-2-117M · 117M params · weights NEVER updated</text>
+
+  <!-- Inner boxes -->
+  <rect x="90" y="815" width="210" height="70" rx="6" fill="#d5f5e3" stroke="#27ae60" stroke-width="1"/>
+  <text x="195" y="840" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e8449">BPE Tokenizer</text>
+  <text x="195" y="858" text-anchor="middle" font-size="10" fill="#555">→ input_ids (512)</text>
+  <text x="195" y="873" text-anchor="middle" font-size="10" fill="#555">→ attention_mask (512)</text>
+
+  <rect x="330" y="815" width="250" height="70" rx="6" fill="#d5f5e3" stroke="#27ae60" stroke-width="1"/>
+  <text x="455" y="840" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e8449">12 Transformer Layers</text>
+  <text x="455" y="858" text-anchor="middle" font-size="10" fill="#555">Self-attention (frozen)</text>
+  <text x="455" y="873" text-anchor="middle" font-size="10" fill="#555">→ (512 × 768) hidden states</text>
+
+  <rect x="610" y="815" width="260" height="70" rx="6" fill="#d5f5e3" stroke="#27ae60" stroke-width="1"/>
+  <text x="740" y="840" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e8449">Mean Pooling</text>
+  <text x="740" y="858" text-anchor="middle" font-size="10" fill="#555">Mask-aware average (NOT [CLS])</text>
+  <text x="740" y="873" text-anchor="middle" font-size="10" fill="#555">→ 1 × 768 per gene</text>
+
+  <!-- Arrows between inner boxes -->
+  <line x1="300" y1="850" x2="330" y2="850" stroke="#27ae60" stroke-width="1.5" marker-end="url(#asGreen)"/>
+  <line x1="580" y1="850" x2="610" y2="850" stroke="#27ae60" stroke-width="1.5" marker-end="url(#asGreen)"/>
+
+  <!-- Output dashed box -->
+  <rect x="90" y="905" width="780" height="80" rx="6" fill="#fff" stroke="#27ae60" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="480" y="928" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e8449">Output: 20 Gene Embeddings (20 × 768 matrix)</text>
+  <text x="480" y="948" text-anchor="middle" font-size="11" fill="#555">EGFR → [0.023, -0.145, 0.089, ..., 0.041]  (768 dims)</text>
+  <text x="480" y="968" text-anchor="middle" font-size="11" fill="#555">BRAF → [0.019, -0.092, 0.067, ..., 0.033]  (768 dims)</text>
+
+  <!-- Arrow from DNABERT down -->
+  <line x1="480" y1="1000" x2="480" y2="1060" stroke="#27ae60" stroke-width="2" marker-end="url(#aGreen)"/>
+
+  <!-- ============================================================ -->
+  <!-- ROW 5: FUSION POINT  (y 1070–1380)                           -->
+  <!-- ============================================================ -->
+  <text x="70" y="1060" font-size="11" font-weight="bold" fill="#aaa" letter-spacing="3">FUSION</text>
+
+  <rect x="70" y="1070" width="1260" height="310" rx="10" fill="#fdf2e9" stroke="#d35400" stroke-width="3"/>
+  <text x="90" y="1098" font-size="15" font-weight="bold" fill="#a93226">FUSION POINT</text>
+
+  <!-- 5 fusion step boxes -->
+  <rect x="90" y="1115" width="210" height="90" rx="6" fill="#fadbd8" stroke="#e74c3c" stroke-width="1"/>
+  <text x="195" y="1140" text-anchor="middle" font-size="11" font-weight="bold" fill="#922b21">Extract Sensitivity</text>
+  <text x="195" y="1158" text-anchor="middle" font-size="10" fill="#555">LN_IC50 for top 20 genes</text>
+  <text x="195" y="1173" text-anchor="middle" font-size="10" fill="#555">from original X matrix</text>
+  <text x="195" y="1195" text-anchor="middle" font-size="10" fill="#888">Shape: (968 × 20)</text>
+
+  <rect x="330" y="1115" width="230" height="90" rx="6" fill="#fadbd8" stroke="#e74c3c" stroke-width="1.5"/>
+  <text x="445" y="1140" text-anchor="middle" font-size="11" font-weight="bold" fill="#922b21">Matrix Multiply</text>
+  <text x="445" y="1158" text-anchor="middle" font-size="10" fill="#555">sensitivity @ emb_matrix</text>
+  <text x="445" y="1173" text-anchor="middle" font-size="10" fill="#555">(968×20) @ (20×768)</text>
+  <text x="445" y="1195" text-anchor="middle" font-size="10" fill="#888">= (968 × 768)</text>
+
+  <rect x="590" y="1115" width="190" height="90" rx="6" fill="#fadbd8" stroke="#e74c3c" stroke-width="1"/>
+  <text x="685" y="1140" text-anchor="middle" font-size="11" font-weight="bold" fill="#922b21">L2 Normalize</text>
+  <text x="685" y="1158" text-anchor="middle" font-size="10" fill="#555">Unit-length rows</text>
+  <text x="685" y="1173" text-anchor="middle" font-size="10" fill="#555">Scale-invariant</text>
+  <text x="685" y="1195" text-anchor="middle" font-size="10" fill="#888">Shape: (968 × 768)</text>
+
+  <rect x="810" y="1115" width="190" height="90" rx="6" fill="#fadbd8" stroke="#e74c3c" stroke-width="1"/>
+  <text x="905" y="1140" text-anchor="middle" font-size="11" font-weight="bold" fill="#922b21">PCA Compress</text>
+  <text x="905" y="1158" text-anchor="middle" font-size="10" fill="#555">768 → 64 dims</text>
+  <text x="905" y="1173" text-anchor="middle" font-size="10" fill="#555">Top 64 components</text>
+  <text x="905" y="1195" text-anchor="middle" font-size="10" fill="#888">Shape: (968 × 64)</text>
+
+  <rect x="1030" y="1115" width="190" height="90" rx="6" fill="#fadbd8" stroke="#e74c3c" stroke-width="1.5"/>
+  <text x="1125" y="1140" text-anchor="middle" font-size="11" font-weight="bold" fill="#922b21">Concatenate</text>
+  <text x="1125" y="1158" text-anchor="middle" font-size="10" fill="#555">Original + BERT</text>
+  <text x="1125" y="1173" text-anchor="middle" font-size="10" fill="#555">~210 + 64</text>
+  <text x="1125" y="1195" text-anchor="middle" font-size="10" fill="#888">= ~274 features</text>
+
+  <!-- Arrows between fusion steps -->
+  <line x1="300" y1="1160" x2="330" y2="1160" stroke="#e74c3c" stroke-width="1.5" marker-end="url(#asRed)"/>
+  <line x1="560" y1="1160" x2="590" y2="1160" stroke="#e74c3c" stroke-width="1.5" marker-end="url(#asRed)"/>
+  <line x1="780" y1="1160" x2="810" y2="1160" stroke="#e74c3c" stroke-width="1.5" marker-end="url(#asRed)"/>
+  <line x1="1000" y1="1160" x2="1030" y2="1160" stroke="#e74c3c" stroke-width="1.5" marker-end="url(#asRed)"/>
+
+  <!-- Fusion explanation dashed box -->
+  <rect x="90" y="1225" width="1220" height="140" rx="6" fill="#fff" stroke="#d35400" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="700" y="1252" text-anchor="middle" font-size="12" font-weight="bold" fill="#a93226">How Fusion Works (Intuition)</text>
+  <text x="700" y="1276" text-anchor="middle" font-size="11" fill="#555">Each cell line's drug-sensitivity values WEIGHT the gene embeddings from DNABERT-2.</text>
+  <text x="700" y="1298" text-anchor="middle" font-size="11" fill="#555">Cell line sensitive to EGFR drugs → context vector dominated by EGFR's DNA embedding.</text>
+  <text x="700" y="1320" text-anchor="middle" font-size="11" fill="#555">Cell line resistant to BRAF drugs → BRAF's DNA embedding subtracted from context vector.</text>
+  <text x="700" y="1348" text-anchor="middle" font-size="10" fill="#888">This is NOT concatenation — it is sensitivity-weighted matrix multiplication.</text>
+
+  <!-- Arrow from Fusion down -->
+  <line x1="700" y1="1380" x2="700" y2="1440" stroke="#d35400" stroke-width="2" marker-end="url(#aRed)"/>
+
+  <!-- ============================================================ -->
+  <!-- ROW 6: MODEL 2  (y 1450–1680)                                -->
+  <!-- ============================================================ -->
+  <text x="70" y="1442" font-size="11" font-weight="bold" fill="#aaa" letter-spacing="3">MODEL 2</text>
+
+  <rect x="70" y="1450" width="820" height="230" rx="10" fill="#eaf2f8" stroke="#2980b9" stroke-width="2.5"/>
+  <text x="90" y="1478" font-size="15" font-weight="bold" fill="#1a5276">MODEL 2: Fusion XGBoost</text>
+  <text x="90" y="1496" font-size="10" fill="#888">Trained on ~274 features (original + DNABERT-2 PCA embeddings)</text>
+
+  <!-- Inner boxes -->
+  <rect x="90" y="1510" width="220" height="65" rx="6" fill="#d6eaf8" stroke="#2980b9" stroke-width="1"/>
+  <text x="200" y="1533" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a5276">Optuna HPO</text>
+  <text x="200" y="1550" text-anchor="middle" font-size="10" fill="#555">50 trials (new search)</text>
+  <text x="200" y="1565" text-anchor="middle" font-size="10" fill="#666">Different optimal params</text>
+
+  <rect x="340" y="1510" width="240" height="65" rx="6" fill="#d6eaf8" stroke="#2980b9" stroke-width="1"/>
+  <text x="460" y="1533" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a5276">Train XGBClassifier</text>
+  <text x="460" y="1550" text-anchor="middle" font-size="10" fill="#555">multi:softprob</text>
+  <text x="460" y="1565" text-anchor="middle" font-size="10" fill="#666">~274 input features</text>
+
+  <rect x="610" y="1510" width="260" height="65" rx="6" fill="#d6eaf8" stroke="#2980b9" stroke-width="1"/>
+  <text x="740" y="1533" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a5276">Cross-Validate</text>
+  <text x="740" y="1550" text-anchor="middle" font-size="10" fill="#555">15 folds, 6 metrics</text>
+  <text x="740" y="1565" text-anchor="middle" font-size="10" fill="#666">Compare vs. baseline lift</text>
+
+  <!-- Arrows between inner boxes -->
+  <line x1="310" y1="1542" x2="340" y2="1542" stroke="#2980b9" stroke-width="1.5" marker-end="url(#asBlue)"/>
+  <line x1="580" y1="1542" x2="610" y2="1542" stroke="#2980b9" stroke-width="1.5" marker-end="url(#asBlue)"/>
+
+  <!-- Output dashed box -->
+  <rect x="90" y="1595" width="780" height="70" rx="6" fill="#fff" stroke="#2980b9" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="480" y="1618" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a5276">Key Metric: Fusion Lift = Fusion_F1 − Baseline_F1</text>
+  <text x="480" y="1642" text-anchor="middle" font-size="11" fill="#555">Positive lift → DNABERT-2 embeddings improved classification beyond raw sensitivity data</text>
+
+  <!-- Arrow from Model 2 down -->
+  <line x1="480" y1="1680" x2="480" y2="1740" stroke="#2980b9" stroke-width="2" marker-end="url(#aBlue)"/>
+
+  <!-- ============================================================ -->
+  <!-- ROW 7: POST-PROCESSING  (y 1750–1910)                        -->
+  <!-- ============================================================ -->
+  <text x="70" y="1742" font-size="11" font-weight="bold" fill="#aaa" letter-spacing="3">POST-PROCESSING</text>
+
+  <!-- Instability Scoring -->
+  <rect x="70" y="1755" width="400" height="155" rx="8" fill="#f5eef8" stroke="#884ea0" stroke-width="2"/>
+  <text x="270" y="1782" text-anchor="middle" font-size="13" font-weight="bold" fill="#6c3483">Instability Scoring</text>
+  <text x="270" y="1802" text-anchor="middle" font-size="10" fill="#555">For each top gene (30 iterations):</text>
+  <text x="270" y="1822" text-anchor="middle" font-size="10" fill="#555">1. Introduce ~1% random point mutations</text>
+  <text x="270" y="1840" text-anchor="middle" font-size="10" fill="#555">2. Re-embed mutant with DNABERT-2</text>
+  <text x="270" y="1858" text-anchor="middle" font-size="10" fill="#555">3. Measure cosine drift from reference</text>
+  <text x="270" y="1896" text-anchor="middle" font-size="10" fill="#888">instability = mean drift across 30 trials</text>
+
+  <!-- Fusion Index -->
+  <rect x="500" y="1755" width="370" height="155" rx="8" fill="#fef9e7" stroke="#d4ac0d" stroke-width="2"/>
+  <text x="685" y="1782" text-anchor="middle" font-size="13" font-weight="bold" fill="#9a7d0a">Fusion Index</text>
+  <text x="685" y="1808" text-anchor="middle" font-size="11" fill="#555">= XGB_Importance × Instability × 1000</text>
+  <text x="685" y="1832" text-anchor="middle" font-size="10" fill="#555">Hand-designed heuristic ranking</text>
+  <text x="685" y="1852" text-anchor="middle" font-size="10" fill="#555">Genes rank high when BOTH</text>
+  <text x="685" y="1868" text-anchor="middle" font-size="10" fill="#555">important AND structurally fragile</text>
+  <text x="685" y="1896" text-anchor="middle" font-size="10" fill="#888">Final gene ranking score</text>
+
+  <!-- Annotations -->
+  <rect x="900" y="1755" width="430" height="155" rx="8" fill="#eaf2f8" stroke="#5dade2" stroke-width="2"/>
+  <text x="1115" y="1782" text-anchor="middle" font-size="13" font-weight="bold" fill="#2471a3">Annotations</text>
+  <text x="1115" y="1808" text-anchor="middle" font-size="10" fill="#555">• Pathway Enrichment (KEGG/Reactome)</text>
+  <text x="1115" y="1826" text-anchor="middle" font-size="10" fill="#555">• Drug-Target Mapping (~55 genes, ~130 drugs)</text>
+  <text x="1115" y="1844" text-anchor="middle" font-size="10" fill="#555">• Resistance Risk Scoring (~28 genes)</text>
+  <text x="1115" y="1862" text-anchor="middle" font-size="10" fill="#555">• Synthetic Lethality Partners</text>
+  <text x="1115" y="1880" text-anchor="middle" font-size="10" fill="#555">• Network Pharmacology Score</text>
+
+  <!-- Arrows between post-processing boxes -->
+  <line x1="470" y1="1832" x2="500" y2="1832" stroke="#884ea0" stroke-width="1.5" marker-end="url(#asPurple)"/>
+  <line x1="870" y1="1832" x2="900" y2="1832" stroke="#d4ac0d" stroke-width="1.5" marker-end="url(#asYellow)"/>
+
+  <!-- Arrow down to downstream -->
+  <line x1="700" y1="1910" x2="700" y2="1970" stroke="#555" stroke-width="2" marker-end="url(#aGray)"/>
+
+  <!-- ============================================================ -->
+  <!-- ROW 8: DOWNSTREAM  (y 1980–2140)                             -->
+  <!-- ============================================================ -->
+  <text x="70" y="1972" font-size="11" font-weight="bold" fill="#aaa" letter-spacing="3">DOWNSTREAM APPLICATIONS</text>
+
+  <!-- Clinical Evidence -->
+  <rect x="70" y="1985" width="400" height="140" rx="8" fill="#e8f8f5" stroke="#1abc9c" stroke-width="2"/>
+  <text x="270" y="2012" text-anchor="middle" font-size="13" font-weight="bold" fill="#148f77">Clinical Evidence APIs</text>
+  <text x="270" y="2036" text-anchor="middle" font-size="10" fill="#555">• OpenTargets (GraphQL) → disease score</text>
+  <text x="270" y="2054" text-anchor="middle" font-size="10" fill="#555">• CIViC (GraphQL) → variant evidence</text>
+  <text x="270" y="2072" text-anchor="middle" font-size="10" fill="#555">• ClinicalTrials.gov (REST) → trial count</text>
+  <text x="270" y="2106" text-anchor="middle" font-size="10" fill="#888">Composite: 0.4·OT + 0.3·CIViC + 0.3·Trials</text>
+
+  <!-- Digital Twin -->
+  <rect x="500" y="1985" width="400" height="140" rx="8" fill="#fef5e7" stroke="#f0b27a" stroke-width="2"/>
+  <text x="700" y="2012" text-anchor="middle" font-size="13" font-weight="bold" fill="#af601a">Digital Twin Simulation</text>
+  <text x="700" y="2036" text-anchor="middle" font-size="10" fill="#555">Gompertzian ODE tumour model</text>
+  <text x="700" y="2054" text-anchor="middle" font-size="10" fill="#555">3 populations: Sensitive, Resistant, Immune</text>
+  <text x="700" y="2072" text-anchor="middle" font-size="10" fill="#555">Forward Euler (dt=0.5d) × 180 days</text>
+  <text x="700" y="2106" text-anchor="middle" font-size="10" fill="#888">RECIST: CR / PR / SD / PD classification</text>
+
+  <!-- Companion Dx -->
+  <rect x="930" y="1985" width="400" height="140" rx="8" fill="#fdedec" stroke="#e74c3c" stroke-width="2"/>
+  <text x="1130" y="2012" text-anchor="middle" font-size="13" font-weight="bold" fill="#922b21">Companion Diagnostics</text>
+  <text x="1130" y="2036" text-anchor="middle" font-size="10" fill="#555">AMP/ASCO/CAP-inspired tiering</text>
+  <text x="1130" y="2054" text-anchor="middle" font-size="10" fill="#555">Tier I–IV based on drug DB matches</text>
+  <text x="1130" y="2072" text-anchor="middle" font-size="10" fill="#555">TMB ≥ 10 → pembrolizumab recommendation</text>
+  <text x="1130" y="2106" text-anchor="middle" font-size="10" fill="#888">Ranked treatment plan with confidence scores</text>
+
+  <!-- ============================================================ -->
+  <!-- LEGEND  (y 2170–2310)                                        -->
+  <!-- ============================================================ -->
+  <rect x="70" y="2170" width="1260" height="140" rx="8" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+  <text x="90" y="2198" font-size="13" font-weight="bold" fill="#333">Legend</text>
+
+  <!-- Row 1 -->
+  <rect x="90" y="2210" width="14" height="14" rx="3" fill="#fff5eb" stroke="#e67e22" stroke-width="1.5"/>
+  <text x="112" y="2222" font-size="10" fill="#555">Model 1: Baseline XGBoost (tabular data only)</text>
+
+  <rect x="450" y="2210" width="14" height="14" rx="3" fill="#eafaf1" stroke="#27ae60" stroke-width="1.5"/>
+  <text x="472" y="2222" font-size="10" fill="#555">DNABERT-2: Frozen feature extractor (no training)</text>
+
+  <rect x="830" y="2210" width="14" height="14" rx="3" fill="#fadbd8" stroke="#e74c3c" stroke-width="1.5"/>
+  <text x="852" y="2222" font-size="10" fill="#555">Fusion: Matrix multiply + PCA + concat</text>
+
+  <!-- Row 2 -->
+  <rect x="90" y="2238" width="14" height="14" rx="3" fill="#eaf2f8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="112" y="2250" font-size="10" fill="#555">Model 2: Fusion XGBoost (tabular + DNABERT-2)</text>
+
+  <rect x="450" y="2238" width="14" height="14" rx="3" fill="#f5eef8" stroke="#884ea0" stroke-width="1.5"/>
+  <text x="472" y="2250" font-size="10" fill="#555">Post-processing: Instability, Fusion Index, annotations</text>
+
+  <rect x="830" y="2238" width="14" height="14" rx="3" fill="#e8f8f5" stroke="#1abc9c" stroke-width="1.5"/>
+  <text x="852" y="2250" font-size="10" fill="#555">Downstream: Clinical evidence, digital twin, Dx</text>
+
+  <!-- Row 3 -->
+  <line x1="90" y1="2275" x2="118" y2="2275" stroke="#555" stroke-width="2"/>
+  <text x="128" y="2279" font-size="10" fill="#555">Data flow (solid arrow)</text>
+
+  <line x1="300" y1="2275" x2="328" y2="2275" stroke="#555" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="338" y="2279" font-size="10" fill="#555">Deferred / side input</text>
+
+  <line x1="530" y1="2275" x2="558" y2="2275" stroke="#555" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="568" y="2279" font-size="10" fill="#555">Output / result boundary (dashed box)</text>
+
+  <!-- ============================================================ -->
+  <!-- FOOTER                                                       -->
+  <!-- ============================================================ -->
+  <text x="700" y="2360" text-anchor="middle" font-size="11" fill="#aaa">Fusion Oncology Architecture · github.com/mytechnotalent/fusion_oncology</text>
+  <text x="700" y="2380" text-anchor="middle" font-size="10" fill="#bbb">Two XGBoost classifiers · Frozen DNABERT-2-117M · Sensitivity-weighted embedding fusion</text>
+
+</svg>
