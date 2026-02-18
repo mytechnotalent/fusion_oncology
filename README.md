@@ -10,6 +10,12 @@ Fusion Oncology is an open-source precision oncology platform (**44 modules, 19,
 
 ---
 
+## Architectural Diagram
+
+![image](https://github.com/mytechnotalent/fusion_oncology/blob/main/fusion_architecture.png?raw=true)
+
+---
+
 ## What It Does
 
 | Component            | Method                                  | What It Captures                                |
